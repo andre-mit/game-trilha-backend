@@ -1,4 +1,5 @@
 ﻿using GameTrilha.GameDomain.Enums;
+using GameTrilha.GameDomain.Helpers;
 
 namespace GameTrilha.GameDomain.Entities;
 
@@ -74,8 +75,8 @@ public class Board
         return PendingPieces;
     }
 
-    public (bool moinho, bool winner) Move(Color color, int originTrack, int originLine, int originColumn, int destinationTrail,
-        int destinationLine, int destinationColumn)
+    public (bool moinho, bool winner) Move(Color color, byte originTrack, byte originLine, byte originColumn, byte destinationTrail,
+        byte destinationLine, byte destinationColumn)
     {
         if (_activateRemaningMoves && _whiteRemaningMoves == 0 && _blackRemaningMoves == 0)
             throw new InvalidOperationException("Não é possível mover mais peças, empate");
@@ -112,12 +113,12 @@ public class Board
     // TODO: Verify if can remove
     public bool RemovePiece(Color color, int track, int line, int column)
     {
-        if(color == Color.Black && !_pendingMoinhoBlack || color == Color.White && !_pendingMoinhoWhite)
+        if (color == Color.Black && !_pendingMoinhoBlack || color == Color.White && !_pendingMoinhoWhite)
             throw new InvalidOperationException("Moinho indisponivel");
 
         if (!Tracks[track].MatchPiece(color, line, column))
             return false;
-        
+
         Tracks[track].Places[line, column].Piece = null;
 
         var colorPiecesAmount = ColorPiecesAmount;
@@ -205,21 +206,14 @@ public class Board
     }
     #endregion
 
-    public static bool ValidateMovement(int originTrack, int originLine, int originColumn, int destinationTrail,
-        int destinationLine, int destinationColumn)
+    public static bool ValidateMovement(byte originTrack, byte originLine, byte originColumn, byte destinationTrack,
+        byte destinationLine, byte destinationColumn)
     {
-        if (destinationTrail is > 2 or < 0 || destinationColumn is > 2 or < 0 || destinationLine is > 2 or < 0)
+        if (destinationTrack > 2 || destinationColumn > 2 || destinationLine > 2)
             return false;
 
-        if (originTrack == destinationTrail &&
-            (originLine == destinationLine &&
-              originColumn == destinationColumn + 1 ^ originColumn == destinationColumn - 1 ||
-             originColumn == destinationColumn &&
-              originLine == destinationLine + 1 ^ originLine == destinationLine - 1)
-           )
-            return true;
-
-        return originTrack != destinationTrail && (originLine == destinationLine || originColumn == destinationColumn);
+        return MoveVerification.MoveAllowed(new MoveVerification.Place(originTrack, originLine, originColumn),
+            new MoveVerification.Place(destinationTrack, destinationLine, destinationColumn));
     }
 
     public bool VerifyWinner(Color opponentColor)

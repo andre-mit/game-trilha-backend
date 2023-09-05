@@ -1,3 +1,5 @@
+using GameTrilha.API.Hubs;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -10,7 +12,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(corsPolicyName, policyBuilder =>
     {
-        policyBuilder.AllowAnyOrigin()
+        policyBuilder
             .AllowAnyHeader()
             .AllowAnyMethod()
             .SetIsOriginAllowed(_ => true)
@@ -41,5 +43,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.UseCors(corsPolicyName);
 app.MapControllers();
+app.UseCors(corsPolicyName);
+app.MapHub<GameHub>("/game");
 
 app.Run();
