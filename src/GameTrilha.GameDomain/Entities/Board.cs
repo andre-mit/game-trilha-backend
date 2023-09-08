@@ -32,7 +32,7 @@ public class Board
 
     public Track[] Tracks { get; } = { new(), new(), new() };
 
-    public Dictionary<Color, byte> ColorPiecesAmount
+    public Dictionary<Color, int> ColorPiecesAmount
     {
         get
         {
