@@ -6,18 +6,18 @@ public class Track
 {
     public Place[,] Places { get; set; } = new Place[3, 3];
 
-    public bool PlaceAvailable(int line, int column)
+    public bool PlaceAvailable(byte line, byte column)
     {
         return Places[line, column].Piece is null;
     }
 
-    public bool MatchPiece(Color color, int line, int column)
+    public bool MatchPiece(Color color, byte line, byte column)
     {
         var piece = Places[line, column].Piece;
         return piece is not null && piece.Color == color;
     }
 
-    public bool Moinho(Piece piece, int line, int column)
+    public bool Moinho(Piece piece, byte line, byte column)
     {
         var place = Places[line, column];
         if (place.Piece is null || place.Piece?.Id != piece.Id)

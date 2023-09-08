@@ -5,15 +5,15 @@ namespace GameTrilha.GameDomain.Entities;
 
 public class Board
 {
-    private static readonly List<(int line, int column)> PositionsMoinhoCrossTracks = new()
+    private static readonly List<(byte line, byte column)> PositionsMoinhoCrossTracks = new()
     {
-        new ValueTuple<int, int>(0, 1),
-        new ValueTuple<int, int>(1, 0),
-        new ValueTuple<int, int>(2, 1),
-        new ValueTuple<int, int>(1, 2)
+        new ValueTuple<byte, byte>(0, 1),
+        new ValueTuple<byte, byte>(1, 0),
+        new ValueTuple<byte, byte>(2, 1),
+        new ValueTuple<byte, byte>(1, 2)
     };
 
-    private Dictionary<Color, int> PendingPieces { get; } = new()
+    private Dictionary<Color, byte> PendingPieces { get; } = new()
     {
         { Color.White, 9 },
         { Color.Black, 9 }
@@ -32,7 +32,7 @@ public class Board
 
     public Track[] Tracks { get; } = { new(), new(), new() };
 
-    public Dictionary<Color, int> ColorPiecesAmount
+    public Dictionary<Color, byte> ColorPiecesAmount
     {
         get
         {
@@ -61,7 +61,7 @@ public class Board
     ///    Dictionary with the amount of pieces pending to place for each color
     /// </returns>
     /// <exception cref="InvalidOperationException">Operation is not valid</exception>
-    public Dictionary<Color, int> PlacePiece(Color color, int track, int line, int column)
+    public Dictionary<Color, byte> PlacePiece(Color color, byte track, byte line, byte column)
     {
         if (PendingPieces[color] == 0)
             throw new InvalidOperationException("Não há mais peças disponíveis para serem colocadas");
@@ -111,7 +111,7 @@ public class Board
     }
 
     // TODO: Verify if can remove
-    public bool RemovePiece(Color color, int track, int line, int column)
+    public bool RemovePiece(Color color, byte track, byte line, byte column)
     {
         if (color == Color.Black && !_pendingMoinhoBlack || color == Color.White && !_pendingMoinhoWhite)
             throw new InvalidOperationException("Moinho indisponivel");
@@ -133,7 +133,7 @@ public class Board
     }
 
     #region Moinho
-    public bool Moinho(Piece piece, int track, int line, int column)
+    public bool Moinho(Piece piece, byte track, byte line, byte column)
     {
         bool moinho;
         if (_moinhoDuplo)
@@ -196,7 +196,7 @@ public class Board
 
     }
 
-    public bool MoinhoCrossTrail(int line, int column, Color color)
+    public bool MoinhoCrossTrail(byte line, byte column, Color color)
     {
         if (!PositionsMoinhoCrossTracks.Contains((line, column))) return false;
 

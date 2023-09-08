@@ -31,19 +31,19 @@ public class GameHub : Hub
         await Clients.Group(gameId).SendAsync("Start", pieces);
     }
 
-    public async Task Move(string gameId, int[] from, int[] to)
+    public async Task Move(string gameId, byte[] from, byte[] to)
     {
         await Clients.Group(gameId).SendAsync("Move", from, to);
     }
 
-    public async Task Place(string gameId, int[] to)
+    public async Task Place(string gameId, byte[] place)
     {
-        await Clients.Group(gameId).SendAsync("Place", to);
+        await Clients.Group(gameId).SendAsync("Place", place);
     }
 
-    public async Task Remove(string gameId, int[] from)
+    public async Task Remove(string gameId, byte[] where)
     {
-        await Clients.Group(gameId).SendAsync("Remove", from);
+        await Clients.Group(gameId).SendAsync("Remove", place);
     }
 
     public async Task EndGame(string gameId)
