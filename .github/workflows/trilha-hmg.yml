@@ -2,7 +2,7 @@ name: Build and deploy .NET Core application to Web App trilha-hmg
 on:
   push:
     branches:
-    - main
+    - homolog
 env:
   AZURE_WEBAPP_NAME: trilha-hmg
   AZURE_WEBAPP_PACKAGE_PATH: src/GameTrilha.API/publish
