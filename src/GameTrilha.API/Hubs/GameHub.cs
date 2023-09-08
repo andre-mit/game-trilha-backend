@@ -41,7 +41,7 @@ public class GameHub : Hub
         await Clients.Group(gameId).SendAsync("Place", place);
     }
 
-    public async Task Remove(string gameId, byte[] where)
+    public async Task Remove(string gameId, byte[] place)
     {
         await Clients.Group(gameId).SendAsync("Remove", place);
     }
