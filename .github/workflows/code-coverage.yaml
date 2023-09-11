@@ -1,4 +1,4 @@
-name: .Net 7 CI Build
+name: Code Coverage .NET 7
 
 on:
   push:
