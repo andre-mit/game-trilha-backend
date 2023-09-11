@@ -27,7 +27,7 @@ public class Track
         for (var i = 0; i < 3; i++)
         {
             place = Places[line, i];
-            if (place.Piece is null)
+            if (place?.Piece is null)
                 break;
             if (place.Piece?.Color == piece.Color) cont++;
         }
@@ -38,7 +38,7 @@ public class Track
         for (var i = 0; i < 3; i++)
         {
             place = Places[i, column];
-            if (place.Piece is null)
+            if (place?.Piece is null)
                 break;
             if (place.Piece?.Color == piece.Color) cont++;
         }

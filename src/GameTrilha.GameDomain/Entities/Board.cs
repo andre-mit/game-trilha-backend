@@ -30,7 +30,12 @@ public class Board
     private byte _blackRemaningMoves = 10;
     private bool _activateRemaningMoves = false;
 
-    public Track[] Tracks { get; } = { new(), new(), new() };
+    public Board(bool moinhoDuplo)
+    {
+        _moinhoDuplo = moinhoDuplo;
+    }
+
+    public Track[] Tracks { get; init; } = { new(), new(), new() };
 
     public Dictionary<Color, int> ColorPiecesAmount
     {
@@ -40,7 +45,7 @@ public class Board
 
             var places = tracks.Select(track =>
                 track.Places.Cast<Place>()
-                    .Where(x => x.Piece is not null));
+                    .Where(x => x?.Piece is not null));
 
             var pieces = places.SelectMany(p => p.Select(x => x.Piece));
 
@@ -87,7 +92,7 @@ public class Board
         if (!Tracks[originTrack].MatchPiece(color, originLine, originColumn) || !Tracks[destinationTrail].PlaceAvailable(destinationLine, destinationColumn))
             throw new InvalidOperationException("Peça inválida ou local de destino ocupado");
 
-        if (!ValidateMovement(originTrack, originLine, originColumn, destinationTrail, destinationLine, destinationColumn))
+        if (ColorPiecesAmount[color] > 3 && !ValidateMovement(originTrack, originLine, originColumn, destinationTrail, destinationLine, destinationColumn))
             throw new InvalidOperationException("Não é possível mover a peça para posições não adjacentes");
 
         var piece = Tracks[originTrack].Places[originLine, originColumn].Piece!;
@@ -105,6 +110,11 @@ public class Board
 
         var moinho = Moinho(piece, destinationTrail, destinationLine, destinationColumn);
         var opponentColor = color == Color.White ? Color.Black : Color.White;
+
+        if (moinho && ColorPiecesAmount[opponentColor] == 3)
+        {
+            return (moinho, true);
+        }
 
         var winner = VerifyWinner(opponentColor);
         return (moinho, winner);
@@ -129,7 +139,8 @@ public class Board
         {
             _activateRemaningMoves = true;
         }
-        return true;
+
+        return VerifyWinner(color == Color.Black ? Color.White : Color.Black);
     }
 
     #region Moinho
@@ -140,18 +151,19 @@ public class Board
         {
             moinho = MoinhoCrossTrail(line, column, piece.Color) || Tracks[track].Moinho(piece, line, column);
 
-            if (moinho)
-                switch (piece.Color)
-                {
-                    case Color.White:
-                        _pendingMoinhoWhite = true;
-                        break;
-                    case Color.Black:
-                        _pendingMoinhoBlack = true;
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
+            if (!moinho) return moinho;
+
+            switch (piece.Color)
+            {
+                case Color.White:
+                    _pendingMoinhoWhite = true;
+                    break;
+                case Color.Black:
+                    _pendingMoinhoBlack = true;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
 
             return moinho;
         }
@@ -226,7 +238,7 @@ public class Board
         };
 
         if (!winner)
-            winner = HaveValidMoves(opponentColor);
+            winner = !HaveValidMoves(opponentColor);
 
         return winner;
     }
@@ -237,72 +249,28 @@ public class Board
         var validMove = false;
 
 
-        for (var i = 0; i < 3; i++)
+        for (byte i = 0; i < 3; i++)
         {
-            for (var j = 0; j < 3; j++)
+            for (byte j = 0; j < 3; j++)
             {
-                for (var k = 0; k < 3; k++)
+                for (byte k = 0; k < 3; k++)
                 {
                     if (j == 1 && k == 1)
                         continue;
 
                     if (Tracks[i].Places[j, k].Piece?.Color != color) continue;
+                    
+                    var availablePlaces = MoveVerification.AllowedPlaces(new MoveVerification.Place(i, j, k));
 
-                    switch (j)
-                    {
-                        case 0 when k == 0:
-                            {
-                                if (Tracks[i].Places[j, k + 1].Piece is null || Tracks[i].Places[j + 1, k].Piece is null)
-                                    validMove = true;
-                                break;
-                            }
-                        case 0 when k == 1:
-                            {
-                                if (Tracks[i].Places[j, k - 1].Piece is null || Tracks[i].Places[j, k + 1].Piece is null ||
-                                    Tracks[i].Places[j + 1, k].Piece is null)
-                                    validMove = true;
-                                break;
-                            }
-                        case 0 when k == 2:
-                            {
-                                if (Tracks[i].Places[j, k - 1].Piece is null || Tracks[i].Places[j + 1, k].Piece is null)
-                                    validMove = true;
-                                break;
-                            }
-                        case 1 when k == 0:
-                            {
-                                if (Tracks[i].Places[j - 1, k].Piece is null || Tracks[i].Places[j, k + 1].Piece is null)
-                                    validMove = true;
-                                break;
-                            }
-                        case 1 when k == 2:
-                            {
-                                if (Tracks[i].Places[j - 1, k].Piece is null || Tracks[i].Places[j, k - 1].Piece is null)
-                                    validMove = true;
-                                break;
-                            }
-                        case 2 when k == 0:
-                            {
-                                if (Tracks[i].Places[j - 1, k].Piece is null || Tracks[i].Places[j - 1, k + 1].Piece is null)
-                                    validMove = true;
-                                break;
-                            }
-                        case 2 when k == 1:
-                            {
-                                if (Tracks[i].Places[j - 1, k].Piece is null || Tracks[i].Places[j, k - 1].Piece is null ||
-                                    Tracks[i].Places[j, k + 1].Piece is null)
-                                    validMove = true;
-                                break;
-                            }
-                        case 2 when k == 2:
-                            {
-                                if (Tracks[i].Places[j - 1, k].Piece is null || Tracks[i].Places[j, k - 1].Piece is null)
-                                    validMove = true;
-                                break;
-                            }
-                    }
+                    validMove = availablePlaces.Any(x => Tracks[x.Track].PlaceAvailable(x.Line, x.Column));
+
+                    if (validMove) break;
                 }
+
+                if (validMove) break;
+                
             }
+            if(validMove) break;
         }
 
         return validMove;
