@@ -123,7 +123,7 @@ public class Board
     // TODO: Verify if can remove
     public bool RemovePiece(Color color, byte track, byte line, byte column)
     {
-        if (color == Color.Black && !_pendingMoinhoBlack || color == Color.White && !_pendingMoinhoWhite)
+        if (color == Color.Black && !_pendingMoinhoWhite || color == Color.White && !_pendingMoinhoBlack)
             throw new InvalidOperationException("Moinho indisponivel");
 
         if (!Tracks[track].MatchPiece(color, line, column))
@@ -259,7 +259,7 @@ public class Board
                         continue;
 
                     if (Tracks[i].Places[j, k].Piece?.Color != color) continue;
-                    
+
                     var availablePlaces = MoveVerification.AllowedPlaces(new MoveVerification.Place(i, j, k));
 
                     validMove = availablePlaces.Any(x => Tracks[x.Track].PlaceAvailable(x.Line, x.Column));
@@ -268,9 +268,9 @@ public class Board
                 }
 
                 if (validMove) break;
-                
+
             }
-            if(validMove) break;
+            if (validMove) break;
         }
 
         return validMove;

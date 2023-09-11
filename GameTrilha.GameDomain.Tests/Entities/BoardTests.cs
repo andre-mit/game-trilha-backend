@@ -179,7 +179,24 @@ public class BoardTests
     }
 
     [Fact]
-    public void MoveBlackPiece_MakeMoinho_ThenRemoveWhitePiece_WinMatch()
+    public void MoveWhitePiece_MakeMoinho_Then_RemoveBlackPiece()
+    {
+        // Arrange
+        var board = _board;
+
+        // Act
+        var (moinho, winner) = board.Move(Color.White, 0, 0, 2, 1, 2, 2);
+        var result = board.RemovePiece(Color.Black, 0, 2, 0);
+
+        // Assert
+        Assert.True(moinho);
+        Assert.False(winner);
+        Assert.False(result);
+        Assert.Null(board.Tracks[0].Places[2, 0].Piece);
+    }
+
+    [Fact]
+    public void MoveBlackPiece_MakeMoinho_Then_WinMatch()
     {
         // Arrange
         var board = _board;
