@@ -9,13 +9,17 @@ public class BoardTests
     public BoardTests()
     {
         /*
-         *      B------B------W
-         *      | B----x----W |
-         *      | | x--B--x | |
+         *      B----0-B------W
+         *      | B--1-x----W |
+         *      | | x2-B--x | |
          *      x-x-x     x-w-x
          *      | | x--x--x | |
          *      | x----x----x |
          *      B------x------X
+         *
+         *      X = Espaço vazio
+         *      B = peça preta
+         *      W = Peça branca
          */
         var tracks = new Track[3]
         {
@@ -117,7 +121,6 @@ public class BoardTests
             }
         };
         _board = new Board(false) { Tracks = tracks };
-
     }
 
     [Fact]
@@ -207,5 +210,22 @@ public class BoardTests
         // Assert
         Assert.True(moinho);
         Assert.True(winner);
+    }
+    
+    [Fact]
+    public void MoveBlackPiece_MakeMoinho_WithoutWinner_Then_DoNotAllowWhiteMove_While_NotRemoveWhitePiece()
+    {
+        // Arrange
+        var board = _board;
+        board.Tracks[0].Places[2,2].Piece = new Piece(Color.White);
+
+        // Act
+        var (moinho, winner) = board.Move(Color.Black, 1, 0, 0, 1, 0, 1);
+        Action act = () => board.Move(Color.White, 0, 0, 2, 0, 1, 2);
+
+        // Assert
+        Assert.True(moinho);
+        Assert.False(winner);
+        Assert.Throws<InvalidOperationException>(act);
     }
 }

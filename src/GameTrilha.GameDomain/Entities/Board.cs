@@ -80,7 +80,7 @@ public class Board
         return PendingPieces;
     }
 
-    public (bool moinho, bool winner) Move(Color color, byte originTrack, byte originLine, byte originColumn, byte destinationTrail,
+    public (bool moinho, bool winner) Move(Color color, byte originTrack, byte originLine, byte originColumn, byte destinationTrack,
         byte destinationLine, byte destinationColumn)
     {
         if (_activateRemaningMoves && _whiteRemaningMoves == 0 && _blackRemaningMoves == 0)
@@ -89,16 +89,19 @@ public class Board
         if (destinationLine == 1 && destinationColumn == 1)
             throw new InvalidOperationException("Não é possível mover uma peça para o centro do tabuleiro");
 
-        if (!Tracks[originTrack].MatchPiece(color, originLine, originColumn) || !Tracks[destinationTrail].PlaceAvailable(destinationLine, destinationColumn))
+        if (!Tracks[originTrack].MatchPiece(color, originLine, originColumn) || !Tracks[destinationTrack].PlaceAvailable(destinationLine, destinationColumn))
             throw new InvalidOperationException("Peça inválida ou local de destino ocupado");
 
-        if (ColorPiecesAmount[color] > 3 && !ValidateMovement(originTrack, originLine, originColumn, destinationTrail, destinationLine, destinationColumn))
+        if (ColorPiecesAmount[color] > 3 && !ValidateMovement(originTrack, originLine, originColumn, destinationTrack, destinationLine, destinationColumn))
             throw new InvalidOperationException("Não é possível mover a peça para posições não adjacentes");
+
+        if(color == Color.White && _pendingMoinhoBlack || color == Color.Black && _pendingMoinhoWhite)
+            throw new InvalidOperationException("Não é possível mover peças pois é a vez do adversário realizar o moinho");
 
         var piece = Tracks[originTrack].Places[originLine, originColumn].Piece!;
 
         Tracks[originTrack].Places[originLine, originColumn].Piece = null;
-        Tracks[destinationTrail].Places[destinationLine, destinationColumn].Piece = piece;
+        Tracks[destinationTrack].Places[destinationLine, destinationColumn].Piece = piece;
 
         if (_activateRemaningMoves)
         {
@@ -108,7 +111,7 @@ public class Board
                 _blackRemaningMoves--;
         }
 
-        var moinho = Moinho(piece, destinationTrail, destinationLine, destinationColumn);
+        var moinho = Moinho(piece, destinationTrack, destinationLine, destinationColumn);
         var opponentColor = color == Color.White ? Color.Black : Color.White;
 
         if (moinho && ColorPiecesAmount[opponentColor] == 3)
