@@ -4,7 +4,12 @@ namespace GameTrilha.GameDomain.Entities;
 
 public class Track
 {
-    public Place[,] Places { get; set; } = new Place[3, 3];
+    public Place[,] Places { get; set; } = new Place[3, 3]
+    {
+        { new(), new(), new() },
+        { new(), null!, new() },
+        { new(), new(), new() }
+    };
 
     public bool PlaceAvailable(byte line, byte column)
     {

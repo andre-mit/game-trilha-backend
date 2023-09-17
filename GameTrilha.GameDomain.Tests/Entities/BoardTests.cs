@@ -246,4 +246,134 @@ public class BoardTests
         Assert.False(winner);
     }
 
+    // Ao acontecer trancamento de peças pretas (limitar movimentação das peças brancas), o branco ganha a partida
+    [Fact]
+    public void MoveWhitePiece_ToValidPosition_BlockAllBlackMoves_WhiteShouldWinMatch()
+    {
+        // Arrange
+        var board = _board;
+        board.Tracks[0].Places[1, 0].Piece = new Piece(Color.White);
+        board.Tracks[0].Places[2, 1].Piece = new Piece(Color.White);
+        board.Tracks[1].Places[1, 0].Piece = new Piece(Color.White);
+        board.Tracks[2].Places[0, 1].Piece = null;
+
+        // Act
+        var (moinho, winner) = board.Move(Color.White, 1, 0, 2, 1, 0, 1);
+
+        // Assert
+        Assert.True(winner);
+    }
+
+    // TODO: Rever performance da operação
+    [Fact]
+    public void PlacePieceWhiteColor_MakeMoinho_RemoveBlackPiece()
+    {
+        // Arrange
+        var board = new Board(false);
+
+        board.PlacePiece(Color.White, 0, 0, 0);
+        board.PlacePiece(Color.Black, 0, 2, 0);
+        board.PlacePiece(Color.White, 0, 0, 2);
+        board.PlacePiece(Color.Black, 0, 2, 2);
+
+        // Act
+        var (_, moinho, _) = board.PlacePiece(Color.White, 0, 0, 1);
+
+        // Assert
+        Assert.True(moinho);
+    }
+
+    [Fact]
+    public void PlacePieceWhiteColor_MakeMoinho_RemoveBlackPieces_ToWinMatch()
+    {
+        // Arrange
+        var board = new Board(false);
+
+        board.PlacePiece(Color.White, 0, 0, 0);
+        board.PlacePiece(Color.Black, 0, 2, 0);
+        board.PlacePiece(Color.White, 0, 0, 2);
+        board.PlacePiece(Color.Black, 0, 2, 2);
+        board.PlacePiece(Color.White, 1, 0, 1);
+        board.PlacePiece(Color.Black, 0, 2, 1);
+
+        board.RemovePiece(Color.White, 1, 0, 1);
+
+        bool winner = false;
+        int count = 0;
+        // Act
+        while (board.PendingPieces[Color.White] != 0)
+        {
+            count++;
+            board.PlacePiece(Color.White, 0, 0, 1);
+            board.RemovePiece(Color.Black, 0, 2, 1);
+
+            var (_, _, w) = board.PlacePiece(Color.Black, 0, 2, 1);
+            if (w)
+                winner = w;
+            else
+                board.RemovePiece(Color.White, 0, 0, 1);
+        }
+
+
+        // Assert
+        Assert.True(winner);
+    }
+
+
+    // Testar Moinho Duplo
+    [Fact]
+    public void TestMoinhoDuplo()
+    {
+        // Arrange
+        var board = new Board(false);
+        // considerar os casos de moinho duplo com o a peça a ser movimentada centralizada ou usando lateralmente
+        board.PlacePiece(Color.White, 0, 0, 0);
+        board.PlacePiece(Color.White, 0, 0, 2);
+        board.PlacePiece(Color.White, 1, 0, 0);
+        board.PlacePiece(Color.White, 1, 0, 1);
+        board.PlacePiece(Color.White, 1, 0, 2);
+        board.PlacePiece(Color.Black, 0, 1, 0);
+        board.PlacePiece(Color.Black, 0, 2, 0);
+        board.PlacePiece(Color.Black, 1, 2, 1);
+        board.PlacePiece(Color.Black, 1, 2, 2);
+        board.PlacePiece(Color.Black, 2, 1, 2);
+
+        // Act
+
+
+        // Assert
+
+
+
+    }
+    
+    [Fact]
+    public void MoveBlackPiece_MakeMoinho_WhenWhiteHave_3Pieces_EnableLast10Moves_ForBoth_ShouldBeDraw()
+    {
+        // Arrange
+        var board = _board;
+        board.Tracks[0].Places[0, 1].Piece = null;
+
+        board.Move(Color.White, 0, 0, 2, 1, 2, 2);
+        board.RemovePiece(Color.Black, 0, 2, 0);
+        
+        board.Move(Color.Black, 2, 0, 1, 2, 0, 0);
+        board.Move(Color.White, 1, 2, 2, 2, 2, 1);
+
+        // Act
+        var draw = false;
+        for (int i = 0; i < 5; i++)
+        {
+            board.Move(Color.Black, 2, 0, 0, 2, 0, 1);
+            var (_, winner) = board.Move(Color.White, 2, 2, 1, 2, 2, 0);
+            draw = !winner.HasValue;
+            if (draw) continue;
+            
+            board.Move(Color.Black, 2, 0, 1, 2, 0, 0);
+            board.Move(Color.White, 2, 2, 0, 2, 2, 1);
+        }
+
+        // Assert
+        Assert.True(draw);
+    }
 }
