@@ -18,7 +18,7 @@
 [x] Mover peça branca - cria moinho - então remove peça preta - sem ganhador
 [x] Mover peça preta - Cria moinho - ganha partida (preto)
 
-[ ] Mover peça preta - Cria moinho - Não permitir jogada branca enquanto não remover peça
+[x] Mover peça preta - Cria moinho - Não permitir jogada branca enquanto não remover peça
 [ ] Mover peça preta - Cria moinho - Ao atingir o tempo - passar a vez para jogador branca
 [ ] Ao atingir 3 peças, pode movimentar para qualquer lugar vazio no tabuleiro
 [ ] Ao atingir 3 peças para ambos jogadores, inicia contagem de movimentos e finaliza a partida com no máximo 10 jogadas para cada

@@ -211,13 +211,13 @@ public class BoardTests
         Assert.True(moinho);
         Assert.True(winner);
     }
-    
+
     [Fact]
     public void MoveBlackPiece_MakeMoinho_WithoutWinner_Then_DoNotAllowWhiteMove_While_NotRemoveWhitePiece()
     {
         // Arrange
         var board = _board;
-        board.Tracks[0].Places[2,2].Piece = new Piece(Color.White);
+        board.Tracks[0].Places[2, 2].Piece = new Piece(Color.White);
 
         // Act
         var (moinho, winner) = board.Move(Color.Black, 1, 0, 0, 1, 0, 1);
@@ -227,5 +227,23 @@ public class BoardTests
         Assert.True(moinho);
         Assert.False(winner);
         Assert.Throws<InvalidOperationException>(act);
+
     }
+    [Fact]
+    public void WhenYouReach3Pieces_AllowAnyMoveToAnyEmptyBoardPlace()
+    {
+        // Arrange
+        var board = _board;
+        board.Tracks[0].Places[0, 0].Piece = null;
+
+        // Act
+        board.Move(Color.White, 0, 0, 2, 1, 2, 2);
+        board.RemovePiece(Color.Black, 1, 0, 0);
+        var (moinho, winner) = board.Move(Color.Black, 0, 2, 0, 0, 0, 2);
+
+        // Assert
+        Assert.False(moinho);
+        Assert.False(winner);
+    }
+
 }
