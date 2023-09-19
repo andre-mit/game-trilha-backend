@@ -342,9 +342,7 @@ public class BoardTests
 
 
         // Assert
-
-
-
+        Assert.True(false);
     }
     
     [Fact]

@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameTrilha.Domain", "src\Ga
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{4489543F-E397-417D-A005-E1E3CDA8C4B5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameTrilha.GameDomain.Tests", "GameTrilha.GameDomain.Tests\GameTrilha.GameDomain.Tests.csproj", "{9137B724-C901-4A8D-AD99-3F2607BB3D6B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameTrilha.GameDomain.Tests", "tests\GameTrilha.GameDomain.Tests\GameTrilha.GameDomain.Tests.csproj", "{9137B724-C901-4A8D-AD99-3F2607BB3D6B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
