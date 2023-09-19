@@ -6,6 +6,8 @@ namespace GameTrilha.GameDomain.Tests.Entities;
 public class BoardTests
 {
     private readonly Board _board;
+    private readonly Dictionary<string, Color> _players;
+
     public BoardTests()
     {
         /*
@@ -120,7 +122,9 @@ public class BoardTests
                 },
             }
         };
-        _board = new Board(false) { Tracks = tracks };
+        
+        _players = new Dictionary<string, Color>{ { "1", Color.White }, { "2", Color.Black } };
+        _board = new Board(false, _players) { Tracks = tracks };
         _board.PendingPieces[Color.Black] = 0;
         _board.PendingPieces[Color.White] = 0;
     }
@@ -131,9 +135,10 @@ public class BoardTests
         // Arrange
         var board = _board;
         var piece = board.Tracks[1].Places[0, 2].Piece;
+        board.Stage = GameStage.Game;
 
         // Act
-        var (moinho, winner) = board.Move(Color.White, 1, 0, 2, 1, 0, 1);
+        var (moinho, winner) = board.Move("1", 1, 0, 2, 1, 0, 1);
 
         // Assert
         Assert.False(winner);
@@ -148,9 +153,10 @@ public class BoardTests
     {
         // Arrange
         var board = _board;
+        board.Stage = GameStage.Game;
 
         // Act
-        Action act = () => board.Move(Color.White, 1, 0, 2, 1, 1, 2);
+        Action act = () => board.Move("1", 1, 0, 2, 1, 1, 2);
 
         // Assert
         Assert.Throws<InvalidOperationException>(act);
@@ -161,9 +167,10 @@ public class BoardTests
     {
         // Arrange
         var board = _board;
+        board.Stage = GameStage.Game;
 
         // Act
-        Action act = () => board.Move(Color.White, 1, 0, 2, 1, 0, 2);
+        Action act = () => board.Move("1", 1, 0, 2, 1, 0, 2);
 
         // Assert
         Assert.Throws<InvalidOperationException>(act);
@@ -174,9 +181,10 @@ public class BoardTests
     {
         // Arrange
         var board = _board;
+        board.Stage = GameStage.Game;
 
         // Act
-        var (moinho, winner) = board.Move(Color.White, 0, 0, 2, 1, 2, 2);
+        var (moinho, winner) = board.Move("1", 0, 0, 2, 1, 2, 2);
 
         // Assert
         Assert.True(moinho);
@@ -188,10 +196,11 @@ public class BoardTests
     {
         // Arrange
         var board = _board;
+        board.Stage = GameStage.Game;
 
         // Act
-        var (moinho, winner) = board.Move(Color.White, 0, 0, 2, 1, 2, 2);
-        var result = board.RemovePiece(Color.Black, 0, 2, 0);
+        var (moinho, winner) = board.Move("1", 0, 0, 2, 1, 2, 2);
+        var result = board.RemovePiece("1", 0, 2, 0);
 
         // Assert
         Assert.True(moinho);
@@ -205,9 +214,11 @@ public class BoardTests
     {
         // Arrange
         var board = _board;
+        board.Turn = Color.Black;
+        board.Stage = GameStage.Game;
 
         // Act
-        var (moinho, winner) = board.Move(Color.Black, 1, 0, 0, 1, 0, 1);
+        var (moinho, winner) = board.Move("2", 1, 0, 0, 1, 0, 1);
 
         // Assert
         Assert.True(moinho);
@@ -219,11 +230,14 @@ public class BoardTests
     {
         // Arrange
         var board = _board;
+        board.Turn = Color.Black;
+        board.Stage = GameStage.Game;
+
         board.Tracks[0].Places[2, 2].Piece = new Piece(Color.White);
 
         // Act
-        var (moinho, winner) = board.Move(Color.Black, 1, 0, 0, 1, 0, 1);
-        Action act = () => board.Move(Color.White, 0, 0, 2, 0, 1, 2);
+        var (moinho, winner) = board.Move("2", 1, 0, 0, 1, 0, 1);
+        Action act = () => board.Move("1", 0, 0, 2, 0, 1, 2);
 
         // Assert
         Assert.True(moinho);
@@ -236,12 +250,14 @@ public class BoardTests
     {
         // Arrange
         var board = _board;
+        board.Stage = GameStage.Game;
+
         board.Tracks[0].Places[0, 0].Piece = null;
 
         // Act
-        board.Move(Color.White, 0, 0, 2, 1, 2, 2);
-        board.RemovePiece(Color.Black, 1, 0, 0);
-        var (moinho, winner) = board.Move(Color.Black, 0, 2, 0, 0, 0, 2);
+        board.Move("1", 0, 0, 2, 1, 2, 2);
+        board.RemovePiece("1", 1, 0, 0);
+        var (moinho, winner) = board.Move("2", 0, 2, 0, 0, 0, 2);
 
         // Assert
         Assert.False(moinho);
@@ -254,13 +270,16 @@ public class BoardTests
     {
         // Arrange
         var board = _board;
+
+        board.Stage = GameStage.Game;
+
         board.Tracks[0].Places[1, 0].Piece = new Piece(Color.White);
         board.Tracks[0].Places[2, 1].Piece = new Piece(Color.White);
         board.Tracks[1].Places[1, 0].Piece = new Piece(Color.White);
         board.Tracks[2].Places[0, 1].Piece = null;
 
         // Act
-        var (moinho, winner) = board.Move(Color.White, 1, 0, 2, 1, 0, 1);
+        var (moinho, winner) = board.Move("1", 1, 0, 2, 1, 0, 1);
 
         // Assert
         Assert.True(winner);
@@ -271,15 +290,15 @@ public class BoardTests
     public void PlacePieceWhiteColor_MakeMoinho_RemoveBlackPiece()
     {
         // Arrange
-        var board = new Board(false);
+        var board = new Board(false, _players);
 
-        board.PlacePiece(Color.White, 0, 0, 0);
-        board.PlacePiece(Color.Black, 0, 2, 0);
-        board.PlacePiece(Color.White, 0, 0, 2);
-        board.PlacePiece(Color.Black, 0, 2, 2);
+        board.PlacePiece("1", 0, 0, 0);
+        board.PlacePiece("2", 0, 2, 0);
+        board.PlacePiece("1", 0, 0, 2);
+        board.PlacePiece("2", 0, 2, 2);
 
         // Act
-        var (_, moinho, _) = board.PlacePiece(Color.White, 0, 0, 1);
+        var (_, moinho, _) = board.PlacePiece("1", 0, 0, 1);
 
         // Assert
         Assert.True(moinho);
@@ -289,16 +308,18 @@ public class BoardTests
     public void PlacePieceWhiteColor_MakeMoinho_RemoveBlackPieces_ToWinMatch()
     {
         // Arrange
-        var board = new Board(false);
+        var board = new Board(false, _players);
 
-        board.PlacePiece(Color.White, 0, 0, 0);
-        board.PlacePiece(Color.Black, 0, 2, 0);
-        board.PlacePiece(Color.White, 0, 0, 2);
-        board.PlacePiece(Color.Black, 0, 2, 2);
-        board.PlacePiece(Color.White, 1, 0, 1);
-        board.PlacePiece(Color.Black, 0, 2, 1);
+        board.Turn = Color.White;
 
-        board.RemovePiece(Color.White, 1, 0, 1);
+        board.PlacePiece("1", 0, 0, 0);
+        board.PlacePiece("2", 0, 2, 0);
+        board.PlacePiece("1", 0, 0, 2);
+        board.PlacePiece("2", 0, 2, 2);
+        board.PlacePiece("1", 1, 0, 1);
+        board.PlacePiece("2", 0, 2, 1);
+
+        board.RemovePiece("2", 1, 0, 1);
 
         bool winner = false;
         int count = 0;
@@ -306,14 +327,14 @@ public class BoardTests
         while (board.PendingPieces[Color.White] != 0)
         {
             count++;
-            board.PlacePiece(Color.White, 0, 0, 1);
-            board.RemovePiece(Color.Black, 0, 2, 1);
+            board.PlacePiece("1", 0, 0, 1);
+            board.RemovePiece("1", 0, 2, 1);
 
-            var (_, _, w) = board.PlacePiece(Color.Black, 0, 2, 1);
+            var (_, _, w) = board.PlacePiece("2", 0, 2, 1);
             if (w)
                 winner = w;
             else
-                board.RemovePiece(Color.White, 0, 0, 1);
+                board.RemovePiece("2", 0, 0, 1);
         }
 
 
@@ -331,13 +352,14 @@ public class BoardTests
 
         board.Tracks[0].Places[2, 2].Piece = new Piece(Color.White);
 
-        board.Turn = Turn.Game;
+        board.Stage = GameStage.Game;
+        board.Turn = Color.Black;
 
         // Act
-        (var moinhoShouldBeTrue, _) = board.Move(Color.Black, 2, 1, 0, 1, 1, 0);
-        board.RemovePiece(Color.White, 0, 2, 2);
-        board.Move(Color.White, 0, 0, 2, 0, 1, 2);
-        (var moinhoShouldBeFalse, _) = board.Move(Color.Black, 1, 1, 0, 0, 1, 0);
+        (var moinhoShouldBeTrue, _) = board.Move("2", 2, 1, 0, 1, 1, 0);
+        board.RemovePiece("2", 0, 2, 2);
+        board.Move("1", 0, 0, 2, 0, 1, 2);
+        (var moinhoShouldBeFalse, _) = board.Move("2", 1, 1, 0, 0, 1, 0);
 
         // Assert
         Assert.True(moinhoShouldBeTrue);
@@ -358,13 +380,14 @@ public class BoardTests
 
         board.Tracks[0].Places[0, 1].Piece = new Piece(Color.White);
 
-        board.Turn = Turn.Game;
+        board.Stage = GameStage.Game;
+        board.Turn = Color.Black;
 
         // Act
-        (var moinhoShouldBeTrue, _) = board.Move(Color.Black, 0, 2, 2, 0, 2, 1);
-        board.RemovePiece(Color.White, 0, 0, 1);
-        board.Move(Color.White, 0, 0, 2, 0, 1, 2);
-        (var moinhoShouldBeFalse, _) = board.Move(Color.Black, 0, 2, 1, 0, 2, 0);
+        (var moinhoShouldBeTrue, _) = board.Move("2", 0, 2, 2, 0, 2, 1);
+        board.RemovePiece("2", 0, 0, 1);
+        board.Move("1", 0, 0, 2, 0, 1, 2);
+        (var moinhoShouldBeFalse, _) = board.Move("2", 0, 2, 1, 0, 2, 0);
 
         // Assert
         Assert.True(moinhoShouldBeTrue);
@@ -377,10 +400,11 @@ public class BoardTests
     public void MovePiece_MakeCenterMoinho_ShouldAllowAnotherMoinho_WhenMoinhoDuploIsEnabled()
     {
         // Arrange
-        var board = new Board(true)
+        var board = new Board(true, _players)
         {
             Tracks = _board.Tracks,
-            Turn = Turn.Game
+            Stage = GameStage.Game,
+            Turn = Color.Black
         };
 
         board.Tracks[1].Places[2, 0].Piece = new Piece(Color.Black);
@@ -388,13 +412,11 @@ public class BoardTests
 
         board.Tracks[0].Places[2, 2].Piece = new Piece(Color.White);
 
-        board.Turn = Turn.Game;
-
         // Act
-        (var firstMoinho, _) = board.Move(Color.Black, 2, 1, 0, 1, 1, 0);
-        board.RemovePiece(Color.White, 0, 2, 2);
-        board.Move(Color.White, 0, 0, 2, 0, 1, 2);
-        (var secondMoinho, _) = board.Move(Color.Black, 1, 1, 0, 0, 1, 0);
+        (var firstMoinho, _) = board.Move("2", 2, 1, 0, 1, 1, 0);
+        board.RemovePiece("2", 0, 2, 2);
+        board.Move("1", 0, 0, 2, 0, 1, 2);
+        (var secondMoinho, _) = board.Move("2", 1, 1, 0, 0, 1, 0);
 
         // Assert
         Assert.True(firstMoinho);
@@ -406,25 +428,27 @@ public class BoardTests
     {
         // Arrange
         var board = _board;
+        board.Turn = Color.White;
+        board.Stage = GameStage.Game;
         board.Tracks[0].Places[0, 1].Piece = null;
 
-        board.Move(Color.White, 0, 0, 2, 1, 2, 2);
-        board.RemovePiece(Color.Black, 0, 2, 0);
+        board.Move("1", 0, 0, 2, 1, 2, 2);
+        board.RemovePiece("1", 0, 2, 0);
 
-        board.Move(Color.Black, 2, 0, 1, 2, 0, 0);
-        board.Move(Color.White, 1, 2, 2, 2, 2, 1);
+        board.Move("2", 2, 0, 1, 2, 0, 0);
+        board.Move("1", 1, 2, 2, 2, 2, 1);
 
         // Act
         var draw = false;
         for (int i = 0; i < 5; i++)
         {
-            board.Move(Color.Black, 2, 0, 0, 2, 0, 1);
-            var (_, winner) = board.Move(Color.White, 2, 2, 1, 2, 2, 0);
+            board.Move("2", 2, 0, 0, 2, 0, 1);
+            var (_, winner) = board.Move("1", 2, 2, 1, 2, 2, 0);
             draw = !winner.HasValue;
             if (draw) continue;
 
-            board.Move(Color.Black, 2, 0, 1, 2, 0, 0);
-            board.Move(Color.White, 2, 2, 0, 2, 2, 1);
+            board.Move("2", 2, 0, 1, 2, 0, 0);
+            board.Move("1", 2, 2, 0, 2, 2, 1);
         }
 
         // Assert
@@ -441,13 +465,14 @@ public class BoardTests
 
         board.Tracks[0].Places[2, 2].Piece = new Piece(Color.White);
 
-        board.Turn = Turn.Game;
+        board.Stage = GameStage.Game;
+        board.Turn = Color.Black;
 
         // Act
-        board.Move(Color.Black, 2, 1, 0, 1, 1, 0);
-        board.RemovePiece(Color.White, 0, 2, 2);
-        board.Move(Color.White, 0, 0, 2, 2, 2, 2);
-        Action act = () => board.RemovePiece(Color.Black, 1, 1, 0);
+        board.Move("2", 2, 1, 0, 1, 1, 0);
+        board.RemovePiece("2", 0, 2, 2);
+        board.Move("1", 0, 0, 2, 2, 2, 2);
+        Action act = () => board.RemovePiece("2", 1, 1, 0);
 
         // Assert
         Assert.Throws<InvalidOperationException>(act);

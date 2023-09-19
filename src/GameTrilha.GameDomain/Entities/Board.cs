@@ -28,15 +28,18 @@ public class Board
     public byte WhiteRemaningMoves { get; private set; }
     public byte BlackRemaningMoves { get; private set; }
     public bool ActivateRemaningMoves { get; private set; }
+    public Color Turn { get; set; } = Color.White;
+    public Dictionary<string, Color> Players { get; init; }
 
-    public Turn Turn { get; set; }
+    public GameStage Stage { get; set; }
 
-    public Board(bool moinhoDuplo, byte maxDrawMoves = 10)
+    public Board(bool moinhoDuplo, Dictionary<string, Color> players, byte maxDrawMoves = 10)
     {
         MoinhoDuplo = moinhoDuplo;
-        Turn = Turn.Place;
+        Stage = GameStage.Place;
         WhiteRemaningMoves = maxDrawMoves;
         BlackRemaningMoves = maxDrawMoves;
+        Players = players;
     }
 
     public Track[] Tracks { get; init; } = { new(), new(), new() };
@@ -62,7 +65,7 @@ public class Board
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="color">Color of piece to place</param>
+    /// <param name="player">Player identifier</param>
     /// <param name="track">Track position</param>
     /// <param name="line">Line position</param>
     /// <param name="column">Column position</param>
@@ -70,8 +73,16 @@ public class Board
     ///    Dictionary with the amount of pieces pending to place for each color
     /// </returns>
     /// <exception cref="InvalidOperationException">Operation is not valid</exception>
-    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner) PlacePiece(Color color, byte track, byte line, byte column)
+    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner) PlacePiece(string player, byte track, byte line, byte column)
     {
+        var color = Players[player];
+
+        if (Stage != GameStage.Place)
+            throw new InvalidOperationException("Não é possível colocar peças pois já está na fase de jogo");
+
+        if (color != Turn)
+            throw new InvalidOperationException("Não é a vez do jogador");
+
         if (PendingPieces[color] == 0)
             throw new InvalidOperationException("Não há mais peças disponíveis para serem colocadas");
 
@@ -86,27 +97,36 @@ public class Board
 
         var opponentColor = color == Color.White ? Color.Black : Color.White;
         var winner = (moinho && PendingPieces[opponentColor] == 0) || VerifyWinner(color);
+        ToggleTurn(moinho);
         return (PendingPieces, moinho, winner);
     }
 
     /// <summary>
     /// Movimentação de peças
     /// </summary>
-    /// <param name="color"></param>
-    /// <param name="originTrack"></param>
-    /// <param name="originLine"></param>
-    /// <param name="originColumn"></param>
-    /// <param name="destinationTrack"></param>
-    /// <param name="destinationLine"></param>
-    /// <param name="destinationColumn"></param>
+    /// <param name="player">Player identifier</param>
+    /// <param name="originTrack">Origin Track. Allowed values: 0 | 1 | 2</param>
+    /// <param name="originLine">Origin Line. Allowed values: 0 | 1 | 2</param>
+    /// <param name="originColumn">Origin Column. Allowed values: 0 | 1 | 2</param>
+    /// <param name="destinationTrack">Destination Track. Allowed values: 0 | 1 | 2</param>
+    /// <param name="destinationLine">Destination Line. Allowed values: 0 | 1 | 2</param>
+    /// <param name="destinationColumn">Destination Column. Allowed values: 0 | 1 | 2</param>
     /// <returns>
     /// moinho: caso haja um moinho após a movimentação
     /// winner: caso o jogador tenha vencido após a movimentação (Pode retornar null caso seja empate)
     /// </returns>
     /// <exception cref="InvalidOperationException">Movimento não permitido</exception>
-    public (bool moinho, bool? winner) Move(Color color, byte originTrack, byte originLine, byte originColumn, byte destinationTrack,
+    public (bool moinho, bool? winner) Move(string player, byte originTrack, byte originLine, byte originColumn, byte destinationTrack,
         byte destinationLine, byte destinationColumn)
     {
+        var color = Players[player];
+
+        if (Stage == GameStage.Place)
+            throw new InvalidOperationException("Não é possível mover peças pois ainda está na fase de colocação");
+
+        if(Turn != color)
+            throw new InvalidOperationException("Não é a vez do jogador");
+
         if (ActivateRemaningMoves && WhiteRemaningMoves == 0 && BlackRemaningMoves == 0)
             return (false, null);
 
@@ -148,11 +168,17 @@ public class Board
         if (ActivateRemaningMoves && !moinho && !winner && VerifyDraw())
             return (false, null);
 
+        ToggleTurn(moinho);
         return (moinho, winner);
     }
 
-    public bool RemovePiece(Color color, byte track, byte line, byte column)
+    public bool RemovePiece(string player, byte track, byte line, byte column)
     {
+        var color = Players.First(x => x.Key != player).Value;
+
+        if (Turn == color)
+            throw new InvalidOperationException("Não é a vez do jogador");
+
         if (color == Color.Black && !PendingMoinhoWhite || color == Color.White && !PendingMoinhoBlack)
             throw new InvalidOperationException("Moinho indisponivel");
 
@@ -177,8 +203,9 @@ public class Board
         }
 
         if (PendingPieces.All(x => x.Value == 0))
-            Turn = Turn.Game;
+            Stage = GameStage.Game;
 
+        ToggleTurn();
         return VerifyWinner(color == Color.Black ? Color.White : Color.Black);
     }
 
@@ -215,7 +242,7 @@ public class Board
     }
 
     #region Moinho
-    public bool Moinho(Piece piece, byte track, byte line, byte column)
+    private bool Moinho(Piece piece, byte track, byte line, byte column)
     {
         if (MoinhoDuplo)
         {
@@ -241,7 +268,7 @@ public class Board
         }
 
 
-        if (Turn == Turn.Game && PendingMoinhoDuplo.Any(x => x.Any(g => g == piece.Id)))
+        if (Stage == GameStage.Game && PendingMoinhoDuplo.Any(x => x.Any(g => g == piece.Id)))
         {
             PendingMoinhoDuplo.RemoveAll(x => x.Any(g => g == piece.Id));
 
@@ -254,7 +281,7 @@ public class Board
 
         if (!isMoinho) return false;
 
-        if (Turn == Turn.Game)
+        if (Stage == GameStage.Game)
             PendingMoinhoDuplo.Add(matches);
 
         switch (piece.Color)
@@ -273,7 +300,7 @@ public class Board
 
     }
 
-    public (bool, Guid[]) MoinhoCrossTrail(byte line, byte column, Color color)
+    private (bool, Guid[]) MoinhoCrossTrail(byte line, byte column, Color color)
     {
         if (!PositionsMoinhoCrossTracks.Contains((line, column))) return (false, null)!;
 
@@ -291,7 +318,7 @@ public class Board
     }
     #endregion
 
-    public static bool ValidateMovement(byte originTrack, byte originLine, byte originColumn, byte destinationTrack,
+    private static bool ValidateMovement(byte originTrack, byte originLine, byte originColumn, byte destinationTrack,
         byte destinationLine, byte destinationColumn)
     {
         if (destinationTrack > 2 || destinationColumn > 2 || destinationLine > 2)
@@ -301,7 +328,7 @@ public class Board
             new MoveVerification.Place(destinationTrack, destinationLine, destinationColumn));
     }
 
-    public bool VerifyWinner(Color opponentColor)
+    private bool VerifyWinner(Color opponentColor)
     {
         var winner = opponentColor switch
         {
@@ -316,10 +343,9 @@ public class Board
         return winner;
     }
 
-    public bool VerifyDraw() => BlackRemaningMoves == 0 && WhiteRemaningMoves == 0;
+    private bool VerifyDraw() => BlackRemaningMoves == 0 && WhiteRemaningMoves == 0;
 
-
-    // TODO: Review this code and apply new logic
+    
     private bool HaveValidMoves(Color color)
     {
         var validMove = false;
@@ -351,4 +377,6 @@ public class Board
 
         return validMove;
     }
+
+    private void ToggleTurn(bool moinho = false) => Turn = moinho ? Turn : Turn == Color.Black ? Color.White : Color.Black;
 }
