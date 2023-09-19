@@ -19,24 +19,24 @@ public class Board
         { Color.Black, 9 }
     };
 
-    private readonly bool _moinhoDuplo;
-    private byte _pendingMovesToMoinhoWhite = 0;
-    private byte _pendingMovesToMoinhoBlack = 0;
+    public bool MoinhoDuplo { get; init; }
+    public readonly List<Guid[]> PendingMoinhoDuplo = new();
 
-    private bool _pendingMoinhoWhite;
-    private bool _pendingMoinhoBlack;
+    public bool PendingMoinhoWhite { get; private set; }
+    public bool PendingMoinhoBlack { get; private set; }
 
-    private byte _whiteRemaningMoves = 10;
-    private byte _blackRemaningMoves = 10;
-    private bool _activateRemaningMoves = false;
+    public byte WhiteRemaningMoves { get; private set; }
+    public byte BlackRemaningMoves { get; private set; }
+    public bool ActivateRemaningMoves { get; private set; }
 
     public Turn Turn { get; set; }
 
-    public Board(bool moinhoDuplo)
+    public Board(bool moinhoDuplo, byte maxDrawMoves = 10)
     {
-        _moinhoDuplo = moinhoDuplo;
+        MoinhoDuplo = moinhoDuplo;
         Turn = Turn.Place;
-
+        WhiteRemaningMoves = maxDrawMoves;
+        BlackRemaningMoves = maxDrawMoves;
     }
 
     public Track[] Tracks { get; init; } = { new(), new(), new() };
@@ -107,7 +107,7 @@ public class Board
     public (bool moinho, bool? winner) Move(Color color, byte originTrack, byte originLine, byte originColumn, byte destinationTrack,
         byte destinationLine, byte destinationColumn)
     {
-        if (_activateRemaningMoves && _whiteRemaningMoves == 0 && _blackRemaningMoves == 0)
+        if (ActivateRemaningMoves && WhiteRemaningMoves == 0 && BlackRemaningMoves == 0)
             return (false, null);
 
         if (destinationLine == 1 && destinationColumn == 1)
@@ -119,7 +119,7 @@ public class Board
         if (ColorPiecesAmount[color] > 3 && !ValidateMovement(originTrack, originLine, originColumn, destinationTrack, destinationLine, destinationColumn))
             throw new InvalidOperationException("Não é possível mover a peça para posições não adjacentes");
 
-        if (color == Color.White && _pendingMoinhoBlack || color == Color.Black && _pendingMoinhoWhite)
+        if (color == Color.White && PendingMoinhoBlack || color == Color.Black && PendingMoinhoWhite)
             throw new InvalidOperationException("Não é possível mover peças pois é a vez do adversário realizar o moinho");
 
         var piece = Tracks[originTrack].Places[originLine, originColumn].Piece!;
@@ -127,12 +127,12 @@ public class Board
         Tracks[originTrack].Places[originLine, originColumn].Piece = null;
         Tracks[destinationTrack].Places[destinationLine, destinationColumn].Piece = piece;
 
-        if (_activateRemaningMoves)
+        if (ActivateRemaningMoves)
         {
             if (color == Color.White)
-                _whiteRemaningMoves--;
+                WhiteRemaningMoves--;
             else
-                _blackRemaningMoves--;
+                BlackRemaningMoves--;
         }
 
         var moinho = Moinho(piece, destinationTrack, destinationLine, destinationColumn);
@@ -145,30 +145,35 @@ public class Board
 
         var winner = VerifyWinner(opponentColor);
 
-        if (_activateRemaningMoves && !moinho && !winner && VerifyDraw())
+        if (ActivateRemaningMoves && !moinho && !winner && VerifyDraw())
             return (false, null);
 
         return (moinho, winner);
     }
 
-    // TODO: Verify if can remove
     public bool RemovePiece(Color color, byte track, byte line, byte column)
     {
-        if (color == Color.Black && !_pendingMoinhoWhite || color == Color.White && !_pendingMoinhoBlack)
+        if (color == Color.Black && !PendingMoinhoWhite || color == Color.White && !PendingMoinhoBlack)
             throw new InvalidOperationException("Moinho indisponivel");
 
         if (!Tracks[track].MatchPiece(color, line, column))
-            return false;
+            throw new InvalidOperationException("Peça inválida");
+
+        var (moinho, positions) = MoinhoCrossTrail(line, column, color);
+        if (!moinho)
+            (moinho, positions) = Tracks[track].Moinho(color, line, column);
+
+        if (moinho && !CanRemoveMoinhoPiece(color, positions.ToList()))
+            throw new InvalidOperationException("Não é possível remover uma peça que faz parte de um moinho");
 
         Tracks[track].Places[line, column].Piece = null;
 
         var colorPiecesAmount = ColorPiecesAmount;
-        _pendingMoinhoBlack = false;
-        _pendingMoinhoWhite = false;
+        PendingMoinhoBlack = PendingMoinhoWhite = false;
 
-        if (!_activateRemaningMoves && colorPiecesAmount[Color.Black] == 3 && colorPiecesAmount[Color.White] == 3)
+        if (!ActivateRemaningMoves && colorPiecesAmount[Color.Black] == 3 && colorPiecesAmount[Color.White] == 3)
         {
-            _activateRemaningMoves = true;
+            ActivateRemaningMoves = true;
         }
 
         if (PendingPieces.All(x => x.Value == 0))
@@ -177,23 +182,56 @@ public class Board
         return VerifyWinner(color == Color.Black ? Color.White : Color.Black);
     }
 
+    public bool CanRemoveMoinhoPiece(Color color, List<Guid> moinhoPlaces)
+    {
+        if (ColorPiecesAmount[color] == 4) return false;
+
+        var haveAnother = false;
+
+        for (byte i = 0; i < 3; i++)
+        {
+            for (byte j = 0; j < 3; j++)
+            {
+                for (byte k = 0; k < 3; k++)
+                {
+                    if (j == 1 && k == 1 ||
+                        Tracks[i].Places[j, k].Piece == null ||
+                        Tracks[i].Places[j, k].Piece!.Color != color ||
+                        moinhoPlaces.Any(x => x == Tracks[i].Places[j, k].Piece?.Id)) continue;
+
+                    var (moinho, places) = MoinhoCrossTrail(j, k, color);
+
+                    haveAnother = !moinho;
+
+                    if (haveAnother) break;
+                    moinhoPlaces.AddRange(places);
+                }
+                if (haveAnother) break;
+            }
+            if (haveAnother) break;
+        }
+
+        return !haveAnother;
+    }
+
     #region Moinho
     public bool Moinho(Piece piece, byte track, byte line, byte column)
     {
-        bool moinho;
-        if (_moinhoDuplo)
+        if (MoinhoDuplo)
         {
-            moinho = MoinhoCrossTrail(line, column, piece.Color) || Tracks[track].Moinho(piece, line, column);
+            var (moinho, _) = MoinhoCrossTrail(line, column, piece.Color);
+            if (!moinho)
+                (moinho, _) = Tracks[track].Moinho(piece.Color, line, column);
 
             if (!moinho) return moinho;
 
             switch (piece.Color)
             {
                 case Color.White:
-                    _pendingMoinhoWhite = true;
+                    PendingMoinhoWhite = true;
                     break;
                 case Color.Black:
-                    _pendingMoinhoBlack = true;
+                    PendingMoinhoBlack = true;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -202,53 +240,54 @@ public class Board
             return moinho;
         }
 
-        if (Turn == Turn.Game && (piece.Color != Color.White || _pendingMovesToMoinhoWhite != 0) &&
-            (piece.Color != Color.Black || _pendingMovesToMoinhoBlack != 0))
+
+        if (Turn == Turn.Game && PendingMoinhoDuplo.Any(x => x.Any(g => g == piece.Id)))
         {
-            switch (piece.Color)
-            {
-                case Color.White:
-                    _pendingMovesToMoinhoWhite = 0;
-                    break;
-                case Color.Black:
-                    _pendingMovesToMoinhoBlack = 0;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            PendingMoinhoDuplo.RemoveAll(x => x.Any(g => g == piece.Id));
 
             return false;
         }
 
-        moinho = MoinhoCrossTrail(line, column, piece.Color) || Tracks[track].Moinho(piece, line, column);
 
-        if (!moinho) return moinho;
+        var (isMoinho, matches) = MoinhoCrossTrail(line, column, piece.Color);
+        if (!isMoinho) (isMoinho, matches) = Tracks[track].Moinho(piece.Color, line, column);
+
+        if (!isMoinho) return false;
+
+        if (Turn == Turn.Game)
+            PendingMoinhoDuplo.Add(matches);
 
         switch (piece.Color)
         {
             case Color.White:
-                _pendingMovesToMoinhoWhite = 1;
-                _pendingMoinhoWhite = true;
+                PendingMoinhoWhite = true;
                 break;
             case Color.Black:
-                _pendingMovesToMoinhoBlack = 1;
-                _pendingMoinhoBlack = true;
+                PendingMoinhoBlack = true;
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
 
-        return moinho;
+        return true;
 
     }
 
-    public bool MoinhoCrossTrail(byte line, byte column, Color color)
+    public (bool, Guid[]) MoinhoCrossTrail(byte line, byte column, Color color)
     {
-        if (!PositionsMoinhoCrossTracks.Contains((line, column))) return false;
+        if (!PositionsMoinhoCrossTracks.Contains((line, column))) return (false, null)!;
 
-        var cont = Tracks.Count(track => track.Places[line, column].Piece?.Color == color);
+        var matches = new Guid?[] { null, null, null };
 
-        return cont == 3;
+        for (var i = 0; i < 3; i++)
+        {
+            if (Tracks[i].Places[line, column].Piece?.Color == color)
+                matches[i] = Tracks[i].Places[line, column].Piece?.Id;
+            else
+                return (false, null!);
+        }
+
+        return (true, matches.Select(x => x!.Value).ToArray());
     }
     #endregion
 
@@ -277,8 +316,8 @@ public class Board
         return winner;
     }
 
-    public bool VerifyDraw() => _blackRemaningMoves == 0 && _whiteRemaningMoves == 0;
-    
+    public bool VerifyDraw() => BlackRemaningMoves == 0 && WhiteRemaningMoves == 0;
+
 
     // TODO: Review this code and apply new logic
     private bool HaveValidMoves(Color color)
