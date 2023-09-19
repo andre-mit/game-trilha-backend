@@ -1,6 +1,6 @@
 ﻿namespace GameTrilha.GameDomain.Enums;
 
-public enum Turn
+public enum Turn : byte
 {
     Place,
     Game

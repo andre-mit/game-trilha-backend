@@ -29,9 +29,9 @@
     [x] Ao colocar peça branca - cria moinho - remove peça preta
     [x] Ao colocar peça branca - cria moinho - remove peça preta - ganha partida
 
-[ ] No moinho - permitir remover apenas peças adversárias soltas (fora de moinho)
-[ ] No moinho - permitir remover peças adversárias de moinho no caso de não ter outras opções
+[x] No moinho - permitir remover apenas peças adversárias soltas (fora de moinho)
+[x] No moinho - permitir remover peças adversárias de moinho no caso de não ter outras opções
 
 [ ] Colocar peça em posição aleatoria caso estoure o tempo de colocar a peça (inicio da partida)
 
-[ ] testar moinho duplo
+[x] testar moinho duplo

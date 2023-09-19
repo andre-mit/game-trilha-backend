@@ -21,7 +21,7 @@ public class BoardTests
          *      B = peça preta
          *      W = Peça branca
          */
-        var tracks = new Track[3]
+        var tracks = new Track[]
         {
             new()
             {
@@ -121,6 +121,8 @@ public class BoardTests
             }
         };
         _board = new Board(false) { Tracks = tracks };
+        _board.PendingPieces[Color.Black] = 0;
+        _board.PendingPieces[Color.White] = 0;
     }
 
     [Fact]
@@ -319,32 +321,86 @@ public class BoardTests
         Assert.True(winner);
     }
 
-
-    // Testar Moinho Duplo
     [Fact]
-    public void TestMoinhoDuplo()
+    public void MovePiece_MakeCenterMoinho_ShouldBlockAnotherMoinho_WhenMoinhoDuploIsDisabled()
     {
         // Arrange
-        var board = new Board(false);
-        // considerar os casos de moinho duplo com o a peça a ser movimentada centralizada ou usando lateralmente
-        board.PlacePiece(Color.White, 0, 0, 0);
-        board.PlacePiece(Color.White, 0, 0, 2);
-        board.PlacePiece(Color.White, 1, 0, 0);
-        board.PlacePiece(Color.White, 1, 0, 1);
-        board.PlacePiece(Color.White, 1, 0, 2);
-        board.PlacePiece(Color.Black, 0, 1, 0);
-        board.PlacePiece(Color.Black, 0, 2, 0);
-        board.PlacePiece(Color.Black, 1, 2, 1);
-        board.PlacePiece(Color.Black, 1, 2, 2);
-        board.PlacePiece(Color.Black, 2, 1, 2);
+        var board = _board;
+        board.Tracks[1].Places[2, 0].Piece = new Piece(Color.Black);
+        board.Tracks[2].Places[1, 0].Piece = new Piece(Color.Black);
+
+        board.Tracks[0].Places[2, 2].Piece = new Piece(Color.White);
+
+        board.Turn = Turn.Game;
 
         // Act
-
+        (var moinhoShouldBeTrue, _) = board.Move(Color.Black, 2, 1, 0, 1, 1, 0);
+        board.RemovePiece(Color.White, 0, 2, 2);
+        board.Move(Color.White, 0, 0, 2, 0, 1, 2);
+        (var moinhoShouldBeFalse, _) = board.Move(Color.Black, 1, 1, 0, 0, 1, 0);
 
         // Assert
-        Assert.True(false);
+        Assert.True(moinhoShouldBeTrue);
+        Assert.False(moinhoShouldBeFalse);
     }
-    
+
+    [Fact]
+    public void MovePiece_MakeCenterAndBorderMoinho_ShouldBlockAnotherMoinho_WhenMoinhoDuploIsDisabled()
+    {
+        // Arrange
+        var board = _board;
+        board.Tracks[0].Places[1, 0].Piece = new Piece(Color.Black);
+        board.Tracks[0].Places[2, 2].Piece = new Piece(Color.Black);
+        board.Tracks[2].Places[2, 1].Piece = new Piece(Color.Black);
+        board.Tracks[1].Places[2, 1].Piece = new Piece(Color.Black);
+
+        board.Tracks[0].Places[2, 0].Piece = null;
+
+        board.Tracks[0].Places[0, 1].Piece = new Piece(Color.White);
+
+        board.Turn = Turn.Game;
+
+        // Act
+        (var moinhoShouldBeTrue, _) = board.Move(Color.Black, 0, 2, 2, 0, 2, 1);
+        board.RemovePiece(Color.White, 0, 0, 1);
+        board.Move(Color.White, 0, 0, 2, 0, 1, 2);
+        (var moinhoShouldBeFalse, _) = board.Move(Color.Black, 0, 2, 1, 0, 2, 0);
+
+        // Assert
+        Assert.True(moinhoShouldBeTrue);
+        Assert.False(moinhoShouldBeFalse);
+    }
+
+
+
+    [Fact]
+    public void MovePiece_MakeCenterMoinho_ShouldAllowAnotherMoinho_WhenMoinhoDuploIsEnabled()
+    {
+        // Arrange
+        var board = new Board(true)
+        {
+            Tracks = _board.Tracks,
+            Turn = Turn.Game
+        };
+
+        board.Tracks[1].Places[2, 0].Piece = new Piece(Color.Black);
+        board.Tracks[2].Places[1, 0].Piece = new Piece(Color.Black);
+
+        board.Tracks[0].Places[2, 2].Piece = new Piece(Color.White);
+
+        board.Turn = Turn.Game;
+
+        // Act
+        (var firstMoinho, _) = board.Move(Color.Black, 2, 1, 0, 1, 1, 0);
+        board.RemovePiece(Color.White, 0, 2, 2);
+        board.Move(Color.White, 0, 0, 2, 0, 1, 2);
+        (var secondMoinho, _) = board.Move(Color.Black, 1, 1, 0, 0, 1, 0);
+
+        // Assert
+        Assert.True(firstMoinho);
+        Assert.True(secondMoinho);
+    }
+
     [Fact]
     public void MoveBlackPiece_MakeMoinho_WhenWhiteHave_3Pieces_EnableLast10Moves_ForBoth_ShouldBeDraw()
     {
@@ -354,7 +410,7 @@ public class BoardTests
 
         board.Move(Color.White, 0, 0, 2, 1, 2, 2);
         board.RemovePiece(Color.Black, 0, 2, 0);
-        
+
         board.Move(Color.Black, 2, 0, 1, 2, 0, 0);
         board.Move(Color.White, 1, 2, 2, 2, 2, 1);
 
@@ -366,12 +422,34 @@ public class BoardTests
             var (_, winner) = board.Move(Color.White, 2, 2, 1, 2, 2, 0);
             draw = !winner.HasValue;
             if (draw) continue;
-            
+
             board.Move(Color.Black, 2, 0, 1, 2, 0, 0);
             board.Move(Color.White, 2, 2, 0, 2, 2, 1);
         }
 
         // Assert
         Assert.True(draw);
+    }
+
+    [Fact]
+    public void MoveWhitePiece_MakeMoinho_ShouldThrowError_To_BlockRemovePieceOfOpponentMoinho_WhenHavePiecesOutsideMoinho()
+    {
+        // Arrange
+        var board = _board;
+        board.Tracks[1].Places[2, 0].Piece = new Piece(Color.Black);
+        board.Tracks[2].Places[1, 0].Piece = new Piece(Color.Black);
+
+        board.Tracks[0].Places[2, 2].Piece = new Piece(Color.White);
+
+        board.Turn = Turn.Game;
+
+        // Act
+        board.Move(Color.Black, 2, 1, 0, 1, 1, 0);
+        board.RemovePiece(Color.White, 0, 2, 2);
+        board.Move(Color.White, 0, 0, 2, 2, 2, 2);
+        Action act = () => board.RemovePiece(Color.Black, 1, 1, 0);
+
+        // Assert
+        Assert.Throws<InvalidOperationException>(act);
     }
 }
