@@ -33,6 +33,6 @@
 [x] No moinho - permitir remover apenas peças adversárias soltas (fora de moinho)
 [x] No moinho - permitir remover peças adversárias de moinho no caso de não ter outras opções
 
-[ ] Colocar peça em posição aleatoria caso estoure o tempo de colocar a peça (inicio da partida)
+[x] Colocar peça em posição aleatoria caso estoure o tempo de colocar a peça (inicio da partida)
 
 [x] testar moinho duplo
