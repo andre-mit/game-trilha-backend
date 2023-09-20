@@ -283,8 +283,7 @@ public class BoardTests
         // Assert
         Assert.True(winner);
     }
-
-    // TODO: Rever performance da operação
+    
     [Fact]
     public void PlacePieceWhiteColor_MakeMoinho_RemoveBlackPiece_WithoutWinning()
     {
