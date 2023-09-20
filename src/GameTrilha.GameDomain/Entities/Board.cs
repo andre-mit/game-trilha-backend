@@ -183,6 +183,18 @@ public class Board
         return (moinho, winner);
     }
 
+    /// <summary>
+    /// Remove a piece of the opponent from the board according to the coordinates
+    /// </summary>
+    /// <summary xml:lang="pt-BR">
+    /// Remove uma peça do adversário do tabuleiro de acordo com as coordenadas
+    /// </summary>
+    /// <param name="player">Player Identifier</param>
+    /// <param name="track">Track Allowed values: 0 | 1 | 2</param>
+    /// <param name="line">Line Allowed values: 0 | 1 | 2</param>
+    /// <param name="column">Column Allowed values: 0 | 1 | 2</param>
+    /// <returns>Winner</returns>
+    /// <exception cref="InvalidOperationException"></exception>
     public bool RemovePiece(string player, byte track, byte line, byte column)
     {
         var color = Players.First(x => x.Key != player).Value;

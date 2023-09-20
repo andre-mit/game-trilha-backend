@@ -286,7 +286,7 @@ public class BoardTests
 
     // TODO: Rever performance da operação
     [Fact]
-    public void PlacePieceWhiteColor_MakeMoinho_RemoveBlackPiece()
+    public void PlacePieceWhiteColor_MakeMoinho_RemoveBlackPiece_WithoutWinning()
     {
         // Arrange
         var board = new Board(false, _players);
@@ -298,9 +298,11 @@ public class BoardTests
 
         // Act
         var (_, moinho, _) = board.PlacePiece("1", 0, 0, 1);
+        var winner = board.RemovePiece("1", 0, 2, 2);
 
         // Assert
         Assert.True(moinho);
+        Assert.False(winner);
     }
 
     [Fact]
