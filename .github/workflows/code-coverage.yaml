@@ -10,6 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: CI Build
+    permissions: write-all
     steps:
     - name: Checkout
       uses: actions/checkout@v2
