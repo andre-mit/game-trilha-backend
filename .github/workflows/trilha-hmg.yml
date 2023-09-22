@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'Homolog'
+      name: 'Homologation'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     steps:
     - name: Download artifact from build job
@@ -50,4 +50,3 @@ jobs:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
         publish-profile: ${{ secrets.trilha_hmg_B9C2 }}
         package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
-        slot-name: 'Homolog'
