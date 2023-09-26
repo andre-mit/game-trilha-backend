@@ -1,6 +1,5 @@
 ﻿using GameTrilha.GameDomain.Enums;
 using GameTrilha.GameDomain.Helpers;
-using System.Runtime.Intrinsics.X86;
 
 namespace GameTrilha.GameDomain.Entities;
 
