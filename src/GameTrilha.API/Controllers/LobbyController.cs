@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using System.Reflection;
 using GameTrilha.API.Hubs;
+using GameTrilha.API.Services;
+using GameTrilha.API.ViewModels.LobbyViewModels;
 
 namespace GameTrilha.API.Controllers;
 
@@ -11,30 +13,28 @@ namespace GameTrilha.API.Controllers;
 public class LobbyController : Controller
 {
     private readonly IHubContext<GameHub> _gameHubContext;
+    private readonly ILogger<LobbyController> _logger;
 
-    public LobbyController(IHubContext<GameHub> gameHubContext)
+    public LobbyController(ILogger<LobbyController> logger, IHubContext<GameHub> gameHubContext)
     {
+        _logger = logger;
         _gameHubContext = gameHubContext;
     }
 
     [HttpGet]
-    public IActionResult ListLobbies()
+    public ActionResult<IEnumerable<ListLobbyViewModel>> ListLobbies()
     {
-        IGroupManager groupManager = _gameHubContext.Groups;
+        try
+        {
+            var lobbies = GameService.Games.Select(game =>
+                new ListLobbyViewModel(game.Key, game.Value.Players.Select(player => player.Key).ToArray(), game.Value.Started));
 
-        var lifetimeManager = groupManager.GetType().GetRuntimeFields()
-            .Single(fi => fi.Name == "_lifetimeManager")
-            .GetValue(groupManager);
-
-        var groupsObject = lifetimeManager?.GetType().GetRuntimeFields()
-            .Single(fi => fi.Name == "_groups")
-            .GetValue(lifetimeManager);
-
-        var groupsDictionary = groupsObject?.GetType().GetRuntimeFields()
-            .Single(fi => fi.Name == "_groups")
-            .GetValue(groupsObject) as IDictionary;
-
-        var groupNames = groupsDictionary?.Keys.Cast<string>().ToList();
-        return Ok(groupNames);
+            return Ok(lobbies);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while getting the lobbies");
+            return BadRequest();
+        }
     }
 }

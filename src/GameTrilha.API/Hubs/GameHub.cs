@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using GameTrilha.API.Helpers;
+using GameTrilha.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using GameTrilha.GameDomain.Entities;
@@ -10,46 +11,31 @@ namespace GameTrilha.API.Hubs;
 //[Authorize]
 public class GameHub : Hub
 {
-    private static readonly ConcurrentDictionary<string, Game> Games = new(Enumerable.Range(1, 20).ToDictionary(x => x.ToString(), x => new Game()));
-
-    public class Game
-    {
-        public Dictionary<string, Player> Players { get; set; }
-        public Board? Board { get; set; }
-        public bool Started { get; set; }
-
-        public Game()
-        {
-            Players = new Dictionary<string, Player>();
-            Started = false;
-            Board = null;
-        }
-    }
-
-    public class Player
-    {
-        public bool Ready { get; set; }
-
-        public Player(bool ready)
-        {
-            Ready = ready;
-        }
-    }
-
 
     public override async Task OnConnectedAsync()
     {
         await base.OnConnectedAsync();
-        await Clients.Caller.SendAsync("Connected", Context.ConnectionId, Games);
+        await Clients.Caller.SendAsync("Connected", Context.ConnectionId);
+    }
+
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        var game = GameService.Games.FirstOrDefault(x => x.Value.Players.ContainsKey(Context.ConnectionId));
+
+        if (game.Key == null) return base.OnDisconnectedAsync(exception);
+
+        GameService.Games[game.Key].Players.Remove(Context.ConnectionId);
+        Clients.All.SendAsync("PlayerLeft", game.Key, Context.ConnectionId);
+        return base.OnDisconnectedAsync(exception);
     }
 
     public async Task Join(string gameId)
     {
-        if (Games[gameId].Players.Count < 2)
+        if (GameService.Games[gameId].Players.Count < 2)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
             await Clients.All.SendAsync("PlayerJoined", gameId, Context.ConnectionId);
-            Games[gameId].Players.Add(Context.ConnectionId, new Player(false));
+            GameService.Games[gameId].Players.Add(Context.ConnectionId, new GameService.Player(false));
 
             //if (Games[gameId].Players.Count == 2)
             //{
@@ -69,22 +55,22 @@ public class GameHub : Hub
 
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameId);
         await Clients.All.SendAsync("PlayerLeft", gameId, Context.ConnectionId);
-        Games[gameId].Players.Remove(Context.ConnectionId);
+        GameService.Games[gameId].Players.Remove(Context.ConnectionId);
     }
 
     public async Task Ready(string gameId, bool moinhoDuplo)
     {
         ThrowIfPlayerIsNotInGame(gameId);
-        Games[gameId].Players[Context.ConnectionId].Ready = !Games[gameId].Players[Context.ConnectionId].Ready;
-        await Clients.OthersInGroup(gameId).SendAsync("Ready", Games[gameId].Players[Context.ConnectionId].Ready);
+        GameService.Games[gameId].Players[Context.ConnectionId].Ready = !GameService.Games[gameId].Players[Context.ConnectionId].Ready;
+        await Clients.OthersInGroup(gameId).SendAsync("Ready", GameService.Games[gameId].Players[Context.ConnectionId].Ready);
 
-        if (Games[gameId].Players.All(player => player.Value.Ready))
+        if (GameService.Games[gameId].Players.All(player => player.Value.Ready))
         {
-            Games[gameId].Started = true;
+            GameService.Games[gameId].Started = true;
             var player1 =
-                new KeyValuePair<string, Color>(Games[gameId].Players.ElementAt(0).Key, RandomColor.GetRandomColor());
+                new KeyValuePair<string, Color>(GameService.Games[gameId].Players.ElementAt(0).Key, RandomColor.GetRandomColor());
             var player2 =
-                new KeyValuePair<string, Color>(Games[gameId].Players.ElementAt(1).Key, RandomColor.GetOppositeColor(player1.Value));
+                new KeyValuePair<string, Color>(GameService.Games[gameId].Players.ElementAt(1).Key, RandomColor.GetOppositeColor(player1.Value));
 
             var players = new Dictionary<string, Color>
             {
@@ -93,7 +79,7 @@ public class GameHub : Hub
             };
 
 
-            Games[gameId].Board = new Board(moinhoDuplo, players);
+            GameService.Games[gameId].Board = new Board(moinhoDuplo, players);
             await Clients.Group(gameId).SendAsync("StartGame", gameId);
         }
     }
@@ -102,7 +88,7 @@ public class GameHub : Hub
     {
         ThrowIfPlayerIsNotInGame(gameId);
 
-        var (moinho, winner) = Games[gameId].Board!.MovePiece(Context.ConnectionId, (byte)from[0], (byte)from[1], (byte)from[2], (byte)to[0], (byte)to[1], (byte)to[2]);
+        var (moinho, winner) = GameService.Games[gameId].Board!.MovePiece(Context.ConnectionId, (byte)from[0], (byte)from[1], (byte)from[2], (byte)to[0], (byte)to[1], (byte)to[2]);
         await Clients.Group(gameId).SendAsync("Move", from, to);
 
         if (!winner.HasValue)
@@ -116,7 +102,7 @@ public class GameHub : Hub
         }
         else if (moinho)
         {
-            await Clients.Group(gameId).SendAsync("Moinho", Games[gameId].Board!.Turn);
+            await Clients.Group(gameId).SendAsync("Moinho", GameService.Games[gameId].Board!.Turn);
         }
     }
 
@@ -125,8 +111,8 @@ public class GameHub : Hub
     {
         ThrowIfPlayerIsNotInGame(gameId);
 
-        var color = Games[gameId].Board!.Turn;
-        var (pendingPieces, moinho, winner) = Games[gameId].Board!.PlacePiece(Context.ConnectionId, place[0], place[1], place[2]);
+        var color = GameService.Games[gameId].Board!.Turn;
+        var (pendingPieces, moinho, winner) = GameService.Games[gameId].Board!.PlacePiece(Context.ConnectionId, place[0], place[1], place[2]);
 
         await Clients.Group(gameId).SendAsync("Place", place, color, pendingPieces);
 
@@ -137,7 +123,7 @@ public class GameHub : Hub
         }
         else if (moinho)
         {
-            await Clients.Group(gameId).SendAsync("Moinho", Games[gameId].Board!.Turn);
+            await Clients.Group(gameId).SendAsync("Moinho", GameService.Games[gameId].Board!.Turn);
         }
     }
 
@@ -155,7 +141,7 @@ public class GameHub : Hub
 
     private void ThrowIfPlayerIsNotInGame(string gameId)
     {
-        if (!Games[gameId].Players.ContainsKey(Context.ConnectionId))
+        if (!GameService.Games[gameId].Players.ContainsKey(Context.ConnectionId))
         {
             throw new Exception("Player not in group");
 
