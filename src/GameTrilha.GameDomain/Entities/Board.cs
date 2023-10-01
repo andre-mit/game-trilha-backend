@@ -76,7 +76,7 @@ public class Board
     ///    Dictionary with the amount of pieces pending to place for each color
     /// </returns>
     /// <exception cref="InvalidOperationException">Operation is not valid</exception>
-    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner) PlacePiece(string player, byte track, byte line, byte column)
+    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId) PlacePiece(string player, byte track, byte line, byte column)
     {
         var color = Players[player];
 
@@ -88,6 +88,9 @@ public class Board
 
         if (PendingPieces[color] == 0)
             throw new InvalidOperationException("Não há mais peças disponíveis para serem colocadas");
+
+        if (PendingMoinhoBlack || PendingMoinhoWhite)
+            throw new InvalidOperationException("Não é possível mover peças pois é preciso remover uma peça antes");
 
         if (!Tracks[track].PlaceAvailable(line, column))
             throw new InvalidOperationException("Local de destino ocupado");
@@ -101,7 +104,9 @@ public class Board
         var opponentColor = color == Color.White ? Color.Black : Color.White;
         var winner = (moinho && PendingPieces[opponentColor] == 0) || VerifyWinner(color);
         ToggleTurn(moinho);
-        return (PendingPieces, moinho, winner);
+        if(PendingPieces.All(x => x.Value ==0))
+            Stage = GameStage.Game;
+        return (PendingPieces, moinho, winner, piece.Id);
     }
 
     /// <summary>
@@ -207,7 +212,7 @@ public class Board
         if (!Tracks[track].MatchPiece(color, line, column))
             throw new InvalidOperationException("Peça inválida");
 
-        var (moinho, positions) = MoinhoCrossTrail(line, column, color);
+        var (moinho, positions) = MoinhoCrossTrack(line, column, color);
         if (!moinho)
             (moinho, positions) = Tracks[track].Moinho(color, line, column);
 
@@ -242,7 +247,7 @@ public class Board
     /// All pending pieces to place, if there is a moinho after the placement and if the player has won after the placement
     /// </returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner) PlaceTimeout(string player)
+    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId) PlaceTimeout(string player)
     {
         if (Stage != GameStage.Place)
             throw new InvalidOperationException("Não é possível realizar o timeout pois não está na fase de colocação");
@@ -306,7 +311,7 @@ public class Board
                         Tracks[i].Places[j, k].Piece!.Color != color ||
                         moinhoPlaces.Any(x => x == Tracks[i].Places[j, k].Piece?.Id)) continue;
 
-                    var (moinho, places) = MoinhoCrossTrail(j, k, color);
+                    var (moinho, places) = MoinhoCrossTrack(j, k, color);
 
                     haveAnother = !moinho;
 
@@ -344,7 +349,7 @@ public class Board
     {
         if (MoinhoDuplo)
         {
-            var (moinho, _) = MoinhoCrossTrail(line, column, piece.Color);
+            var (moinho, _) = MoinhoCrossTrack(line, column, piece.Color);
             if (!moinho)
                 (moinho, _) = Tracks[track].Moinho(piece.Color, line, column);
 
@@ -374,7 +379,7 @@ public class Board
         }
 
 
-        var (isMoinho, matches) = MoinhoCrossTrail(line, column, piece.Color);
+        var (isMoinho, matches) = MoinhoCrossTrack(line, column, piece.Color);
         if (!isMoinho) (isMoinho, matches) = Tracks[track].Moinho(piece.Color, line, column);
 
         if (!isMoinho) return false;
@@ -395,10 +400,9 @@ public class Board
         }
 
         return true;
-
     }
 
-    private (bool, Guid[]) MoinhoCrossTrail(byte line, byte column, Color color)
+    private (bool, Guid[]) MoinhoCrossTrack(byte line, byte column, Color color)
     {
         if (!PositionsMoinhoCrossTracks.Contains((line, column))) return (false, null)!;
 
@@ -430,8 +434,8 @@ public class Board
     {
         var winner = opponentColor switch
         {
-            Color.White => ColorPiecesAmount[Color.White] == 2,
-            Color.Black => ColorPiecesAmount[Color.Black] == 2,
+            Color.White => ColorPiecesAmount[Color.White] <= 2 && PendingPieces[Color.White] == 0,
+            Color.Black => ColorPiecesAmount[Color.Black] <= 2 && PendingPieces[Color.Black] == 0,
             _ => false
         };
 
