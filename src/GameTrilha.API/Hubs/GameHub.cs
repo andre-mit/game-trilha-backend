@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using GameTrilha.API.Helpers;
+﻿using GameTrilha.API.Helpers;
 using GameTrilha.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -9,9 +8,9 @@ using GameTrilha.GameDomain.Enums;
 namespace GameTrilha.API.Hubs;
 
 //[Authorize]
+// Todo: Remove delayed tasks
 public class GameHub : Hub
 {
-
     public override async Task OnConnectedAsync()
     {
         await base.OnConnectedAsync();
@@ -104,7 +103,7 @@ public class GameHub : Hub
         else if (winner.Value)
         {
             await Clients.Caller.SendAsync("Win");
-            await Clients.OthersInGroup(gameId).SendAsync("Loss", Context.ConnectionId);
+            await Clients.OthersInGroup(gameId).SendAsync("Lose", Context.ConnectionId);
         }
         else if (moinho)
         {
@@ -130,7 +129,7 @@ public class GameHub : Hub
         if (winner)
         {
             await Clients.Caller.SendAsync("Win");
-            await Clients.OthersInGroup(gameId).SendAsync("Loss", Context.ConnectionId);
+            await Clients.OthersInGroup(gameId).SendAsync("Lose", Context.ConnectionId);
         }
         else if (moinho)
         {
@@ -161,7 +160,7 @@ public class GameHub : Hub
         if (winner)
         {
             await Clients.Caller.SendAsync("Win");
-            await Clients.OthersInGroup(gameId).SendAsync("Loss", Context.ConnectionId);
+            await Clients.OthersInGroup(gameId).SendAsync("Lose", Context.ConnectionId);
         }
         else
         {
