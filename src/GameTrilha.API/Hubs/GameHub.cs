@@ -96,7 +96,7 @@ public class GameHub : Hub
 
         var (moinho, winner) = GameService.Games[gameId].Board!.MovePiece(Context.ConnectionId, (byte)from[0], (byte)from[1], (byte)from[2], (byte)to[0], (byte)to[1], (byte)to[2]);
         await Clients.Group(gameId).SendAsync("Move", from, to);
-
+        await Task.Delay(1000);
         if (!winner.HasValue)
         {
             await Clients.Group(gameId).SendAsync("Draw");
@@ -126,9 +126,10 @@ public class GameHub : Hub
 
         await Clients.Group(gameId).SendAsync("Place", pieceId, place, color, pendingPieces);
 
+        await Task.Delay(1000);
         if (winner)
         {
-            await Clients.Caller.SendAsync("Winner");
+            await Clients.Caller.SendAsync("Win");
             await Clients.OthersInGroup(gameId).SendAsync("Loss", Context.ConnectionId);
         }
         else if (moinho)
@@ -159,7 +160,7 @@ public class GameHub : Hub
 
         if (winner)
         {
-            await Clients.Caller.SendAsync("Winner");
+            await Clients.Caller.SendAsync("Win");
             await Clients.OthersInGroup(gameId).SendAsync("Loss", Context.ConnectionId);
         }
         else

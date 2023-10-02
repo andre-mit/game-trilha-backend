@@ -3,6 +3,7 @@ using GameTrilha.GameDomain.Helpers;
 
 namespace GameTrilha.GameDomain.Entities;
 
+// Todo: Verificar vitoria ao não ter movimentos validos
 public class Board
 {
     private static readonly List<(byte line, byte column)> PositionsMoinhoCrossTracks = new()
@@ -233,7 +234,7 @@ public class Board
             Stage = GameStage.Game;
 
         ToggleTurn();
-        return VerifyWinner(color == Color.Black ? Color.White : Color.Black);
+        return VerifyWinner(color);
     }
 
     /// <summary>
@@ -452,12 +453,11 @@ public class Board
     {
         var validMove = false;
 
-
-        for (byte i = 0; i < 3; i++)
+        for (byte i = 0; i < 3 && !validMove; i++)
         {
-            for (byte j = 0; j < 3; j++)
+            for (byte j = 0; j < 3 && !validMove; j++)
             {
-                for (byte k = 0; k < 3; k++)
+                for (byte k = 0; k < 3 && !validMove; k++)
                 {
                     if (j == 1 && k == 1)
                         continue;
@@ -465,16 +465,10 @@ public class Board
                     if (Tracks[i].Places[j, k].Piece?.Color != color) continue;
 
                     var availablePlaces = MoveVerification.AllowedPlaces(new MoveVerification.Place(i, j, k));
-
+                    
                     validMove = availablePlaces.Any(x => Tracks[x.Track].PlaceAvailable(x.Line, x.Column));
-
-                    if (validMove) break;
                 }
-
-                if (validMove) break;
-
             }
-            if (validMove) break;
         }
 
         return validMove;
