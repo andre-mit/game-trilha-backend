@@ -103,7 +103,7 @@ public class Board
         var moinho = Moinho(piece, track, line, column);
 
         var opponentColor = color == Color.White ? Color.Black : Color.White;
-        var winner = (moinho && PendingPieces[opponentColor] == 0) || VerifyWinner(color);
+        var winner = (moinho && PendingPieces[opponentColor] == 0 && ColorPiecesAmount[opponentColor] == 3) || VerifyWinner(color);
         ToggleTurn(moinho);
         if(PendingPieces.All(x => x.Value ==0))
             Stage = GameStage.Game;

@@ -24,10 +24,12 @@ public static class GameService
     public class Player
     {
         public bool Ready { get; set; }
+        public bool Loaded { get; set; }
 
         public Player(bool ready)
         {
             Ready = ready;
+            Loaded = false;
         }
     }
 }

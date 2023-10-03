@@ -85,6 +85,16 @@ public class GameHub : Hub
 
             await Task.Delay(2000);
 
+            
+        }
+    }
+
+    public async Task Loaded(string gameId)
+    {
+        ThrowIfPlayerIsNotInGame(gameId);
+        GameService.Games[gameId].Players[Context.ConnectionId].Loaded = true;
+        if (GameService.Games[gameId].Players.All(player => player.Value.Loaded))
+        {
             await Clients.Group(gameId).SendAsync("PlaceStage", GameService.Games[gameId].Board!.Turn, GameService.Games[gameId].Board!.PendingPieces);
         }
     }
