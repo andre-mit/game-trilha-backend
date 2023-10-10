@@ -27,7 +27,7 @@ public class LobbyController : Controller
         try
         {
             var lobbies = GameService.Games.Select(game =>
-                new ListLobbyViewModel(game.Key, game.Value.Players.Select(player => player.Key).ToArray(), game.Value.Started));
+                new ListLobbyViewModel(game.Key, game.Value.Players.Select(player => player.Key).ToArray(), game.Value.State));
 
             return Ok(lobbies);
         }

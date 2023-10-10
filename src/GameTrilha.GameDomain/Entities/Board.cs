@@ -440,7 +440,7 @@ public class Board
             _ => false
         };
 
-        if (!winner)
+        if (!winner && PendingPieces[opponentColor] == 0)
             winner = !HaveValidMoves(opponentColor);
 
         return winner;

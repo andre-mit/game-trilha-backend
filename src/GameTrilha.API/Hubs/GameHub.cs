@@ -4,11 +4,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using GameTrilha.GameDomain.Entities;
 using GameTrilha.GameDomain.Enums;
+using static GameTrilha.API.Services.GameService;
+using System.Runtime.Remoting.Contexts;
+using System;
 
 namespace GameTrilha.API.Hubs;
 
 //[Authorize]
 // Todo: Remove delayed tasks
+// TODO: Get ID of player by token
 public class GameHub : Hub
 {
     private readonly ILogger<GameHub> _logger;
@@ -27,13 +31,11 @@ public class GameHub : Hub
 
     public override Task OnDisconnectedAsync(Exception? exception)
     {
-        var game = GameService.Games.FirstOrDefault(x => x.Value.Players.ContainsKey(Context.ConnectionId));
+        var game = Games.FirstOrDefault(x => x.Value.Players.ContainsKey(Context.ConnectionId));
 
         if (game.Key == null) return base.OnDisconnectedAsync(exception);
 
-        GameService.Games[game.Key].Players.Remove(Context.ConnectionId);
-        Clients.All.SendAsync("PlayerLeft", game.Key, Context.ConnectionId);
-
+        HandleLeave(game.Key);
         _logger.LogInformation("Client {ConnectionId} disconnected", Context.ConnectionId);
 
         return base.OnDisconnectedAsync(exception);
@@ -41,13 +43,12 @@ public class GameHub : Hub
 
     public async Task Join(string gameId)
     {
-        if (GameService.Games[gameId].Players.Count < 2)
+        if (Games[gameId].Players.Count < 2)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
             await Clients.All.SendAsync("PlayerJoined", gameId, Context.ConnectionId);
-            GameService.Games[gameId].Players.Add(Context.ConnectionId, new GameService.Player(false));
-
-            _logger.LogInformation("Client {ConnectionId} joined game {gameId}", Context.ConnectionId, gameId);
+            Games[gameId].Players.Add(Context.ConnectionId, new Player(false));
+            _logger.LogInformation("Client {ConnectionId} tried to join game {gameId} but it was full", Context.ConnectionId, gameId);
         }
         else
         {
@@ -56,31 +57,27 @@ public class GameHub : Hub
         }
     }
 
-    public async Task Leave(string gameId)
+    public void Leave(string gameId)
     {
         ThrowIfPlayerIsNotInGame(gameId);
-
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameId);
-        await Clients.All.SendAsync("PlayerLeft", gameId, Context.ConnectionId);
-        GameService.Games[gameId].Players.Remove(Context.ConnectionId);
+        HandleLeave(gameId);
         _logger.LogInformation("Client {ConnectionId} left game {gameId}", Context.ConnectionId, gameId);
     }
 
     public async Task Ready(string gameId, bool moinhoDuplo)
     {
         ThrowIfPlayerIsNotInGame(gameId);
-        GameService.Games[gameId].Players[Context.ConnectionId].Ready = !GameService.Games[gameId].Players[Context.ConnectionId].Ready;
-        await Clients.OthersInGroup(gameId).SendAsync("Ready", GameService.Games[gameId].Players[Context.ConnectionId].Ready);
+        Games[gameId].Players[Context.ConnectionId].Ready = !Games[gameId].Players[Context.ConnectionId].Ready;
+        await Clients.OthersInGroup(gameId).SendAsync("Ready", Games[gameId].Players[Context.ConnectionId].Ready);
 
         _logger.LogInformation("Player {ConnectionId} is ready: {Ready}", Context.ConnectionId, GameService.Games[gameId].Players[Context.ConnectionId].Ready);
-
-        if (GameService.Games[gameId].Players.All(player => player.Value.Ready))
+        if (Games[gameId].Players.All(player => player.Value.Ready))
         {
-            GameService.Games[gameId].Started = true;
+            Games[gameId].State = Game.GameState.Playing;
             var player1 =
-                new KeyValuePair<string, Color>(GameService.Games[gameId].Players.ElementAt(0).Key, RandomColor.GetRandomColor());
+                new KeyValuePair<string, Color>(Games[gameId].Players.ElementAt(0).Key, RandomColor.GetRandomColor());
             var player2 =
-                new KeyValuePair<string, Color>(GameService.Games[gameId].Players.ElementAt(1).Key, RandomColor.GetOppositeColor(player1.Value));
+                new KeyValuePair<string, Color>(Games[gameId].Players.ElementAt(1).Key, RandomColor.GetOppositeColor(player1.Value));
 
             var players = new Dictionary<string, Color>
             {
@@ -89,10 +86,11 @@ public class GameHub : Hub
             };
 
 
-            GameService.Games[gameId].Board = new Board(moinhoDuplo, players);
+            Games[gameId].Board = new Board(moinhoDuplo, players);
 
             await Clients.Client(player1.Key).SendAsync("StartGame", gameId, player1.Value);
             await Clients.Client(player2.Key).SendAsync("StartGame", gameId, player2.Value);
+            await Clients.AllExcept(player1.Key, player2.Key).SendAsync("LobbyStarted", gameId);
             _logger.LogInformation("Game {gameId} started with players connections: {player1} and {player2}", gameId, player1.Key, player2.Key);
         }
     }
@@ -100,12 +98,10 @@ public class GameHub : Hub
     public async Task Loaded(string gameId)
     {
         ThrowIfPlayerIsNotInGame(gameId);
-        GameService.Games[gameId].Players[Context.ConnectionId].Loaded = true;
-        _logger.LogInformation("Player {ConnectionId} is loaded", Context.ConnectionId);
-
-        if (GameService.Games[gameId].Players.All(player => player.Value.Loaded))
+        Games[gameId].Players[Context.ConnectionId].Loaded = true;
+        if (Games[gameId].Players.All(player => player.Value.Loaded))
         {
-            await Clients.Group(gameId).SendAsync("PlaceStage", GameService.Games[gameId].Board!.Turn, GameService.Games[gameId].Board!.PendingPieces);
+            await Clients.Group(gameId).SendAsync("PlaceStage", Games[gameId].Board!.Turn, Games[gameId].Board!.PendingPieces);
             _logger.LogInformation("Game {gameId} is in place stage by all players already loaded", gameId);
         }
     }
@@ -116,38 +112,33 @@ public class GameHub : Hub
         {
             ThrowIfPlayerIsNotInGame(gameId);
 
-            var (moinho, winner) = GameService.Games[gameId].Board!.MovePiece(Context.ConnectionId, (byte)from[0], (byte)from[1], (byte)from[2], (byte)to[0], (byte)to[1], (byte)to[2]);
+            var (moinho, winner) = Games[gameId].Board!.MovePiece(Context.ConnectionId, (byte)from[0], (byte)from[1],
+                (byte)from[2], (byte)to[0], (byte)to[1], (byte)to[2]);
             await Clients.Group(gameId).SendAsync("Move", from, to);
-            _logger.LogInformation("Player {ConnectionId} moved piece from {@from} to {@to}", Context.ConnectionId, from, to);
-
             await Task.Delay(1000);
-
             if (!winner.HasValue)
             {
                 await Clients.Group(gameId).SendAsync("Draw");
-                _logger.LogInformation("Game {gameId} ended in a draw", gameId);
+                EndMatch(gameId);
             }
             else if (winner.Value)
             {
                 await Clients.Caller.SendAsync("Win");
-                await Clients.OthersInGroup(gameId).SendAsync("Lose", Context.ConnectionId);
-                _logger.LogInformation("Player {ConnectionId} won game {gameId}", Context.ConnectionId, gameId);
+                await Clients.OthersInGroup(gameId).SendAsync("Lose");
+                EndMatch(gameId);
             }
             else if (moinho)
             {
-                await Clients.Group(gameId).SendAsync("Moinho", GameService.Games[gameId].Board!.Turn);
-                _logger.LogInformation("Player {ConnectionId} made a moinho", Context.ConnectionId);
+                await Clients.Group(gameId).SendAsync("Moinho", Games[gameId].Board!.Turn);
             }
             else
             {
-                await Clients.Group(gameId).SendAsync("MoveStage", GameService.Games[gameId].Board!.Turn);
-                _logger.LogInformation("Game {gameId} is in move stage", gameId);
+                await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error moving piece");
-            await Clients.Caller.SendAsync("Error", ex.Message);
+            _logger.LogError(ex, ex.Message);
         }
     }
 
@@ -158,37 +149,32 @@ public class GameHub : Hub
         {
             ThrowIfPlayerIsNotInGame(gameId);
 
-            var color = GameService.Games[gameId].Board!.Turn;
-            var (pendingPieces, moinho, winner, pieceId) = GameService.Games[gameId].Board!.PlacePiece(Context.ConnectionId, (byte)place[0], (byte)place[1], (byte)place[2]);
+            var color = Games[gameId].Board!.Turn;
+            var (pendingPieces, moinho, winner, pieceId) = Games[gameId].Board!.PlacePiece(Context.ConnectionId,
+                (byte)place[0], (byte)place[1], (byte)place[2]);
 
-            await Clients.Group(gameId).SendAsync("Place", pieceId, place, color, pendingPieces);
-
-            _logger.LogInformation("Player {ConnectionId} placed piece {@place}", Context.ConnectionId, place);
+        await Clients.Group(gameId).SendAsync("Place", pieceId, place, color, pendingPieces);
 
             await Task.Delay(1000);
-
             if (winner)
             {
                 await Clients.Caller.SendAsync("Win");
-                await Clients.OthersInGroup(gameId).SendAsync("Lose", Context.ConnectionId);
-                _logger.LogInformation("Player {ConnectionId} won game {gameId}", Context.ConnectionId, gameId);
+                await Clients.OthersInGroup(gameId).SendAsync("Lose");
+                EndMatch(gameId);
             }
             else if (moinho)
             {
-                await Clients.Group(gameId).SendAsync("Moinho", GameService.Games[gameId].Board!.Turn);
-                _logger.LogInformation("Player {ConnectionId} made a moinho", Context.ConnectionId);
+                await Clients.Group(gameId).SendAsync("Moinho", Games[gameId].Board!.Turn);
             }
             else
             {
-                switch (GameService.Games[gameId].Board!.Stage)
+                switch (Games[gameId].Board!.Stage)
                 {
                     case GameStage.Place:
-                        await Clients.Group(gameId).SendAsync("PlaceStage", GameService.Games[gameId].Board!.Turn, pendingPieces);
-                        _logger.LogInformation("Game {gameId} is in place stage", gameId);
+                        await Clients.Group(gameId).SendAsync("PlaceStage", Games[gameId].Board!.Turn, pendingPieces);
                         break;
                     case GameStage.Game:
-                        await Clients.Group(gameId).SendAsync("MoveStage", GameService.Games[gameId].Board!.Turn);
-                        _logger.LogInformation("Game {gameId} is in move stage", gameId);
+                        await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
                         break;
                 }
             }
@@ -202,41 +188,29 @@ public class GameHub : Hub
 
     public async Task Remove(string gameId, int[] place)
     {
-        try
+        ThrowIfPlayerIsNotInGame(gameId);
+        var winner = Games[gameId].Board!.RemovePiece(Context.ConnectionId, (byte)place[0], (byte)place[1],
+            (byte)place[2]);
+
+        await Clients.Group(gameId).SendAsync("Remove", place);
+
+        if (winner)
         {
-            ThrowIfPlayerIsNotInGame(gameId);
-            var winner = GameService.Games[gameId].Board!.RemovePiece(Context.ConnectionId, (byte)place[0], (byte)place[1],
-                (byte)place[2]);
-
-            await Clients.Group(gameId).SendAsync("Remove", place);
-
-            _logger.LogInformation("Player {ConnectionId} removed piece {@place}", Context.ConnectionId, place);
-
-            if (winner)
-            {
-                await Clients.Caller.SendAsync("Win");
-                await Clients.OthersInGroup(gameId).SendAsync("Lose", Context.ConnectionId);
-                _logger.LogInformation("Player {ConnectionId} won game {gameId}", Context.ConnectionId, gameId);
-            }
-            else
-            {
-                switch (GameService.Games[gameId].Board!.Stage)
-                {
-                    case GameStage.Place:
-                        await Clients.Group(gameId).SendAsync("PlaceStage", GameService.Games[gameId].Board!.Turn, GameService.Games[gameId].Board!.PendingPieces);
-                        _logger.LogInformation("Game {gameId} is in place stage", gameId);
-                        break;
-                    case GameStage.Game:
-                        await Clients.Group(gameId).SendAsync("MoveStage", GameService.Games[gameId].Board!.Turn);
-                        _logger.LogInformation("Game {gameId} is in move stage", gameId);
-                        break;
-                }
-            }
+            await Clients.Caller.SendAsync("Win");
+            await Clients.OthersInGroup(gameId).SendAsync("Lose");
+            EndMatch(gameId);
         }
-        catch (Exception ex)
+        else
         {
-            _logger.LogError(ex, "Error removing piece");
-            await Clients.Caller.SendAsync("Error", ex.Message);
+            switch (Games[gameId].Board!.Stage)
+            {
+                case GameStage.Place:
+                    await Clients.Group(gameId).SendAsync("PlaceStage", Games[gameId].Board!.Turn, Games[gameId].Board!.PendingPieces);
+                    break;
+                case GameStage.Game:
+                    await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
+                    break;
+            }
         }
     }
 
@@ -248,10 +222,47 @@ public class GameHub : Hub
 
     private void ThrowIfPlayerIsNotInGame(string gameId)
     {
-        if (!GameService.Games[gameId].Players.ContainsKey(Context.ConnectionId))
-        {
+        if (!Games[gameId].Players.ContainsKey(Context.ConnectionId))
             throw new Exception("Player not in group");
+    }
 
+    private async void EndMatch(string gameId)
+    {
+        GameService.EndMatch(gameId);
+        await Clients.All.SendAsync("GameFinished", gameId);
+    }
+
+    private async void HandleLeave(string gameId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameId);
+
+        await Clients.All.SendAsync("PlayerLeft", gameId, Context.ConnectionId);
+
+        switch (Games[gameId].State)
+        {
+            case Game.GameState.Waiting:
+                Games[gameId].Players.Remove(Context.ConnectionId);
+                break;
+            case Game.GameState.Playing:
+                await Clients.OthersInGroup(gameId).SendAsync("OpponentLeave");
+                await Clients.OthersInGroup(gameId).SendAsync("Win");
+                EndMatch(gameId);
+                break;
+            case Game.GameState.Finished:
+                if (Games[gameId].Players.Count == 1)
+                {
+                    ResetGame(gameId);
+                    await Clients.All.SendAsync("LobbyReset", gameId);
+                }
+                else
+                {
+                    await Clients.OthersInGroup(gameId).SendAsync("OpponentLeave");
+                }
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
+
+        Games[gameId].Players.Remove(Context.ConnectionId);
     }
 }
