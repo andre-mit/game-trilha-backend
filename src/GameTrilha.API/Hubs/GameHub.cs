@@ -5,8 +5,6 @@ using Microsoft.AspNetCore.SignalR;
 using GameTrilha.GameDomain.Entities;
 using GameTrilha.GameDomain.Enums;
 using static GameTrilha.API.Services.GameService;
-using System.Runtime.Remoting.Contexts;
-using System;
 
 namespace GameTrilha.API.Hubs;
 
