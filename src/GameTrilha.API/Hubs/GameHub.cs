@@ -10,7 +10,7 @@ namespace GameTrilha.API.Hubs;
 
 //[Authorize]
 // Todo: Remove delayed tasks
-// TODO: Get ID of player by token
+// TODO: Get ID of player by token (Context.UserIdentifier), after JWT implementation
 public class GameHub : Hub
 {
     public override async Task OnConnectedAsync()
@@ -58,24 +58,9 @@ public class GameHub : Hub
 
         if (Games[gameId].Players.All(player => player.Value.Ready))
         {
-            Games[gameId].State = Game.GameState.Playing;
-            var player1 =
-                new KeyValuePair<string, Color>(Games[gameId].Players.ElementAt(0).Key, RandomColor.GetRandomColor());
-            var player2 =
-                new KeyValuePair<string, Color>(Games[gameId].Players.ElementAt(1).Key, RandomColor.GetOppositeColor(player1.Value));
+            var (player1, player2) = StartGame(gameId, moinhoDuplo);
 
-            var players = new Dictionary<string, Color>
-            {
-                { player1.Key, player1.Value },
-                { player2.Key, player2.Value }
-            };
-
-
-            Games[gameId].Board = new Board(moinhoDuplo, players);
-
-            await Clients.Client(player1.Key).SendAsync("StartGame", gameId, player1.Value);
-            await Clients.Client(player2.Key).SendAsync("StartGame", gameId, player2.Value);
-            await Clients.AllExcept(player1.Key, player2.Key).SendAsync("LobbyStarted", gameId);
+            HandleStartMatch(gameId, player1, player2);
         }
     }
 
@@ -180,16 +165,34 @@ public class GameHub : Hub
         }
     }
 
-    public async Task Rematch(string gameId)
-    {
-        ThrowIfPlayerIsNotInGame(gameId);
-        await Clients.Group(gameId).SendAsync("Rematch");
-    }
+    //public async Task Rematch(string gameId)
+    //{
+    //    ThrowIfPlayerIsNotInGame(gameId);
+
+    //    var rematchResult = ToggleRematch(gameId, Context.ConnectionId);
+
+    //    if (rematchResult.HasValue)
+    //    {
+    //        await Clients.Group(gameId).SendAsync("Rematch");
+
+    //        await Task.Delay(500);
+
+    //        HandleStartMatch(gameId, rematchResult.Value.player1, rematchResult.Value.player2);
+    //    }
+    //}
 
     private void ThrowIfPlayerIsNotInGame(string gameId)
     {
         if (!Games[gameId].Players.ContainsKey(Context.ConnectionId))
             throw new Exception("Player not in group");
+    }
+
+    private async void HandleStartMatch(string gameId, KeyValuePair<string, Color> player1,
+        KeyValuePair<string, Color> player2)
+    {
+        await Clients.Client(player1.Key).SendAsync("StartGame", gameId, player1.Value);
+        await Clients.Client(player2.Key).SendAsync("StartGame", gameId, player2.Value);
+        await Clients.AllExcept(player1.Key, player2.Key).SendAsync("LobbyStarted", gameId);
     }
 
     private async void EndMatch(string gameId)
