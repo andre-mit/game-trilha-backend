@@ -283,7 +283,7 @@ public class BoardTests
         // Assert
         Assert.True(winner);
     }
-    
+
     [Fact]
     public void PlacePieceWhiteColor_MakeMoinho_RemoveBlackPiece_WithoutWinning()
     {
@@ -296,7 +296,7 @@ public class BoardTests
         board.PlacePiece("2", 0, 2, 2);
 
         // Act
-        var (_, moinho, _) = board.PlacePiece("1", 0, 0, 1);
+        var (_, moinho, _, _) = board.PlacePiece("1", 0, 0, 1);
         var winner = board.RemovePiece("1", 0, 2, 2);
 
         // Assert
@@ -330,7 +330,7 @@ public class BoardTests
             board.PlacePiece("1", 0, 0, 1);
             board.RemovePiece("1", 0, 2, 1);
 
-            var (_, _, w) = board.PlacePiece("2", 0, 2, 1);
+            var (_, _, w, _) = board.PlacePiece("2", 0, 2, 1);
             if (w)
                 winner = w;
             else
@@ -524,7 +524,7 @@ public class BoardTests
         var board = new Board(false, _players);
 
         // Act
-        var (pendingPieces, moinho, winner) = board.PlaceTimeout("1");
+        var (pendingPieces, moinho, winner, _) = board.PlaceTimeout("1");
 
         // Assert
         Assert.Equal(8, pendingPieces![_players["1"]]);
