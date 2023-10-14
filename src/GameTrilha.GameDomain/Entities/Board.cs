@@ -314,6 +314,9 @@ public class Board
 
                     var (moinho, places) = MoinhoCrossTrack(j, k, color);
 
+                    if (!moinho)
+                        (moinho, places) = Tracks[i].Moinho(color, j, k);
+
                     haveAnother = !moinho;
 
                     if (haveAnother) break;
