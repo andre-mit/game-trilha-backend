@@ -11,6 +11,7 @@ namespace GameTrilha.API.Controllers;
 public class GameController : ControllerBase
 {
     [Authorize]
+    [HttpGet]
     public ActionResult<ListGameDetailsViewModel> GetGameDetails()
     {
         try

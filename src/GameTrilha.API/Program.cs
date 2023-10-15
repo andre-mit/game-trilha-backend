@@ -1,4 +1,6 @@
+using GameTrilha.API.Contexts;
 using GameTrilha.API.Hubs;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,21 +31,24 @@ builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddEntityFrameworkSqlServer()
+    .AddDbContext<TrilhaContext>(options =>
+    {
+        options.UseSqlServer(builder.Configuration.GetConnectionString("SQLSERVER_Trilha"));
+    });
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
+app.UseCors(corsPolicyName);
 app.UseAuthorization();
-app.UseCors(corsPolicyName);
 app.MapControllers();
-app.UseCors(corsPolicyName);
 app.MapHub<GameHub>("/game");
 
 app.Run();
