@@ -1,5 +1,10 @@
+using System.Text;
 using GameTrilha.API.Contexts;
 using GameTrilha.API.Hubs;
+using GameTrilha.API.Services;
+using GameTrilha.API.Services.Interfaces;
+using GameTrilha.API.SetupConfigurations;
+using GameTrilha.API.SetupConfigurations.Models;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,6 +42,19 @@ builder.Services.AddEntityFrameworkSqlServer()
         options.UseSqlServer(builder.Configuration.GetConnectionString("SQLSERVER_Trilha"));
     });
 
+#region JWT
+
+var jwtSection = builder.Configuration.GetSection("JwtSettings");
+builder.Services.Configure<JwtOptions>(jwtSection);
+var key = jwtSection.Get<JwtOptions>()!.Key;
+
+builder.Services.AddAuthorization();
+builder.Services.AddJwtAuthentication(key);
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+#endregion
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -47,6 +65,7 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 
 app.UseCors(corsPolicyName);
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<GameHub>("/game");
