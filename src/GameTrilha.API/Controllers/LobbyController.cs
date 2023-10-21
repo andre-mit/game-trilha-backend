@@ -10,7 +10,7 @@ namespace GameTrilha.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class LobbyController : Controller
+public class LobbyController : ControllerBase
 {
     private readonly IHubContext<GameHub> _gameHubContext;
     private readonly ILogger<LobbyController> _logger;

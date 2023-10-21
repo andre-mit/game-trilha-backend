@@ -10,21 +10,13 @@ namespace GameTrilha.API.Hubs;
 
 //[Authorize]
 // Todo: Remove delayed tasks
-// TODO: Get ID of player by token
+// TODO: Get ID of player by token (Context.UserIdentifier), after JWT implementation
 public class GameHub : Hub
 {
-    private readonly ILogger<GameHub> _logger;
-
-    public GameHub(ILogger<GameHub> logger)
-    {
-        _logger = logger;
-    }
-
     public override async Task OnConnectedAsync()
     {
         await base.OnConnectedAsync();
         await Clients.Caller.SendAsync("Connected", Context.ConnectionId);
-        _logger.LogInformation("Client {ConnectionId} connected", Context.ConnectionId);
     }
 
     public override Task OnDisconnectedAsync(Exception? exception)
@@ -34,7 +26,6 @@ public class GameHub : Hub
         if (game.Key == null) return base.OnDisconnectedAsync(exception);
 
         HandleLeave(game.Key);
-        _logger.LogInformation("Client {ConnectionId} disconnected", Context.ConnectionId);
 
         return base.OnDisconnectedAsync(exception);
     }
@@ -46,12 +37,10 @@ public class GameHub : Hub
             await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
             await Clients.All.SendAsync("PlayerJoined", gameId, Context.ConnectionId);
             Games[gameId].Players.Add(Context.ConnectionId, new Player(false));
-            _logger.LogInformation("Client {ConnectionId} tried to join game {gameId} but it was full", Context.ConnectionId, gameId);
         }
         else
         {
             await Clients.Caller.SendAsync("LobbyFull");
-            _logger.LogInformation("Client {ConnectionId} tried to join game {gameId} but it was full", Context.ConnectionId, gameId);
         }
     }
 
@@ -59,7 +48,6 @@ public class GameHub : Hub
     {
         ThrowIfPlayerIsNotInGame(gameId);
         HandleLeave(gameId);
-        _logger.LogInformation("Client {ConnectionId} left game {gameId}", Context.ConnectionId, gameId);
     }
 
     public async Task Ready(string gameId, bool moinhoDuplo)
@@ -68,28 +56,11 @@ public class GameHub : Hub
         Games[gameId].Players[Context.ConnectionId].Ready = !Games[gameId].Players[Context.ConnectionId].Ready;
         await Clients.OthersInGroup(gameId).SendAsync("Ready", Games[gameId].Players[Context.ConnectionId].Ready);
 
-        _logger.LogInformation("Player {ConnectionId} is ready: {Ready}", Context.ConnectionId, GameService.Games[gameId].Players[Context.ConnectionId].Ready);
         if (Games[gameId].Players.All(player => player.Value.Ready))
         {
-            Games[gameId].State = Game.GameState.Playing;
-            var player1 =
-                new KeyValuePair<string, Color>(Games[gameId].Players.ElementAt(0).Key, RandomColor.GetRandomColor());
-            var player2 =
-                new KeyValuePair<string, Color>(Games[gameId].Players.ElementAt(1).Key, RandomColor.GetOppositeColor(player1.Value));
+            var (player1, player2) = StartGame(gameId, moinhoDuplo);
 
-            var players = new Dictionary<string, Color>
-            {
-                { player1.Key, player1.Value },
-                { player2.Key, player2.Value }
-            };
-
-
-            Games[gameId].Board = new Board(moinhoDuplo, players);
-
-            await Clients.Client(player1.Key).SendAsync("StartGame", gameId, player1.Value);
-            await Clients.Client(player2.Key).SendAsync("StartGame", gameId, player2.Value);
-            await Clients.AllExcept(player1.Key, player2.Key).SendAsync("LobbyStarted", gameId);
-            _logger.LogInformation("Game {gameId} started with players connections: {player1} and {player2}", gameId, player1.Key, player2.Key);
+            HandleStartMatch(gameId, player1, player2);
         }
     }
 
@@ -100,87 +71,69 @@ public class GameHub : Hub
         if (Games[gameId].Players.All(player => player.Value.Loaded))
         {
             await Clients.Group(gameId).SendAsync("PlaceStage", Games[gameId].Board!.Turn, Games[gameId].Board!.PendingPieces);
-            _logger.LogInformation("Game {gameId} is in place stage by all players already loaded", gameId);
         }
     }
 
     public async Task Move(string gameId, int[] from, int[] to)
     {
-        try
-        {
-            ThrowIfPlayerIsNotInGame(gameId);
+        ThrowIfPlayerIsNotInGame(gameId);
 
-            var (moinho, winner) = Games[gameId].Board!.MovePiece(Context.ConnectionId, (byte)from[0], (byte)from[1],
-                (byte)from[2], (byte)to[0], (byte)to[1], (byte)to[2]);
-            await Clients.Group(gameId).SendAsync("Move", from, to);
-            await Task.Delay(1000);
-            if (!winner.HasValue)
-            {
-                await Clients.Group(gameId).SendAsync("Draw");
-                EndMatch(gameId);
-            }
-            else if (winner.Value)
-            {
-                await Clients.Caller.SendAsync("Win");
-                await Clients.OthersInGroup(gameId).SendAsync("Lose");
-                EndMatch(gameId);
-            }
-            else if (moinho)
-            {
-                await Clients.Group(gameId).SendAsync("Moinho", Games[gameId].Board!.Turn);
-            }
-            else
-            {
-                await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
-            }
-        }
-        catch (Exception ex)
+        var (moinho, winner) = Games[gameId].Board!.MovePiece(Context.ConnectionId, (byte)from[0], (byte)from[1], (byte)from[2], (byte)to[0], (byte)to[1], (byte)to[2]);
+        await Clients.Group(gameId).SendAsync("Move", from, to);
+        await Task.Delay(1000);
+        if (!winner.HasValue)
         {
-            _logger.LogError(ex, ex.Message);
+            await Clients.Group(gameId).SendAsync("Draw");
+            EndMatch(gameId);
+        }
+        else if (winner.Value)
+        {
+            await Clients.Caller.SendAsync("Win");
+            await Clients.OthersInGroup(gameId).SendAsync("Lose");
+            EndMatch(gameId);
+        }
+        else if (moinho)
+        {
+            await Clients.Group(gameId).SendAsync("Moinho", Games[gameId].Board!.Turn);
+        }
+        else
+        {
+            await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
         }
     }
 
 
     public async Task Place(string gameId, int[] place)
     {
-        try
-        {
-            ThrowIfPlayerIsNotInGame(gameId);
+        ThrowIfPlayerIsNotInGame(gameId);
 
-            var color = Games[gameId].Board!.Turn;
-            var (pendingPieces, moinho, winner, pieceId) = Games[gameId].Board!.PlacePiece(Context.ConnectionId,
-                (byte)place[0], (byte)place[1], (byte)place[2]);
+        var color = Games[gameId].Board!.Turn;
+        var (pendingPieces, moinho, winner, pieceId) = Games[gameId].Board!.PlacePiece(Context.ConnectionId, (byte)place[0], (byte)place[1], (byte)place[2]);
 
         await Clients.Group(gameId).SendAsync("Place", pieceId, place, color, pendingPieces);
 
-            await Task.Delay(1000);
-            if (winner)
-            {
-                await Clients.Caller.SendAsync("Win");
-                await Clients.OthersInGroup(gameId).SendAsync("Lose");
-                EndMatch(gameId);
-            }
-            else if (moinho)
-            {
-                await Clients.Group(gameId).SendAsync("Moinho", Games[gameId].Board!.Turn);
-            }
-            else
-            {
-                switch (Games[gameId].Board!.Stage)
-                {
-                    case GameStage.Place:
-                        await Clients.Group(gameId).SendAsync("PlaceStage", Games[gameId].Board!.Turn, pendingPieces);
-                        break;
-                    case GameStage.Game:
-                        await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
-                        break;
-                }
-            }
-        }
-        catch (Exception ex)
+        await Task.Delay(1000);
+        if (winner)
         {
-            _logger.LogError(ex, "Error placing piece");
-            await Clients.Caller.SendAsync("Error", ex.Message);
+            await Clients.Caller.SendAsync("Win");
+            await Clients.OthersInGroup(gameId).SendAsync("Lose");
+            EndMatch(gameId);
+        }
+        else if (moinho)
+        {
+            await Clients.Group(gameId).SendAsync("Moinho", Games[gameId].Board!.Turn);
+        }
+        else
+        {
+            switch (Games[gameId].Board!.Stage)
+            {
+                case GameStage.Place:
+                    await Clients.Group(gameId).SendAsync("PlaceStage", Games[gameId].Board!.Turn, pendingPieces);
+                    break;
+                case GameStage.Game:
+                    await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
+                    break;
+            }
         }
     }
 
@@ -212,16 +165,34 @@ public class GameHub : Hub
         }
     }
 
-    public async Task Rematch(string gameId)
-    {
-        ThrowIfPlayerIsNotInGame(gameId);
-        await Clients.Group(gameId).SendAsync("Rematch");
-    }
+    //public async Task Rematch(string gameId)
+    //{
+    //    ThrowIfPlayerIsNotInGame(gameId);
+
+    //    var rematchResult = ToggleRematch(gameId, Context.ConnectionId);
+
+    //    if (rematchResult.HasValue)
+    //    {
+    //        await Clients.Group(gameId).SendAsync("Rematch");
+
+    //        await Task.Delay(500);
+
+    //        HandleStartMatch(gameId, rematchResult.Value.player1, rematchResult.Value.player2);
+    //    }
+    //}
 
     private void ThrowIfPlayerIsNotInGame(string gameId)
     {
         if (!Games[gameId].Players.ContainsKey(Context.ConnectionId))
             throw new Exception("Player not in group");
+    }
+
+    private async void HandleStartMatch(string gameId, KeyValuePair<string, Color> player1,
+        KeyValuePair<string, Color> player2)
+    {
+        await Clients.Client(player1.Key).SendAsync("StartGame", gameId, player1.Value);
+        await Clients.Client(player2.Key).SendAsync("StartGame", gameId, player2.Value);
+        await Clients.AllExcept(player1.Key, player2.Key).SendAsync("LobbyStarted", gameId);
     }
 
     private async void EndMatch(string gameId)
