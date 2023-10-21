@@ -64,10 +64,10 @@ app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
-app.UseCors(corsPolicyName);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.UseCors(corsPolicyName);
 app.MapHub<GameHub>("/game");
 
 app.Run();
