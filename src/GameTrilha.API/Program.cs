@@ -1,10 +1,12 @@
 using System.Text;
 using GameTrilha.API.Contexts;
+using GameTrilha.API.Contexts.Repositories;
 using GameTrilha.API.Hubs;
 using GameTrilha.API.Services;
 using GameTrilha.API.Services.Interfaces;
 using GameTrilha.API.SetupConfigurations;
 using GameTrilha.API.SetupConfigurations.Models;
+using GameTrilha.Domain.Entities.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,6 +43,8 @@ builder.Services.AddEntityFrameworkSqlServer()
     {
         options.UseSqlServer(builder.Configuration.GetConnectionString("SQLSERVER_Trilha"));
     });
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 #region JWT
 

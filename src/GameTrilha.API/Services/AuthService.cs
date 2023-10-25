@@ -6,15 +6,22 @@ using GameTrilha.API.SetupConfigurations.Models;
 using GameTrilha.API.ViewModels.UserViewModels;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using BCrypt.Net;
+using GameTrilha.API.Contexts;
+using Microsoft.EntityFrameworkCore;
 
 namespace GameTrilha.API.Services;
 
 public class AuthService : IAuthService
 {
     private readonly JwtOptions _jwtConfig;
+    private readonly ILogger<AuthService> _logger;
+    private readonly TrilhaContext _context;
 
-    public AuthService(IOptions<JwtOptions> jwtConfig)
+    public AuthService(IOptions<JwtOptions> jwtConfig, TrilhaContext context, ILogger<AuthService> logger)
     {
+        _context = context;
+        _logger = logger;
         _jwtConfig = jwtConfig.Value;
     }
 
@@ -45,5 +52,19 @@ public class AuthService : IAuthService
         var token = tokenHandler.CreateToken(tokenDescriptor);
 
         return tokenHandler.WriteToken(token);
+    }
+
+    public async Task<ListUserViewModel> Login(string email, string password)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+        if (user is null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
+        {
+            _logger.LogError("User not found {Email}", email);
+            throw new NullReferenceException("User not found");
+        }
+
+        _logger.LogInformation("User {Email} logged in", email);
+        return new ListUserViewModel(user.Id, user.Name, user.Email, new List<string>());
     }
 }

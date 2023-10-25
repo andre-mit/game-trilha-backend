@@ -8,4 +8,5 @@ namespace GameTrilha.API.Services.Interfaces;
 public interface IAuthService
 {
     string GenerateToken(ListUserViewModel user);
+    Task<ListUserViewModel> Login(string email, string password);
 }
