@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\GameTrilha.Domain\GameTrilha.Domain.csproj" />
     <ProjectReference Include="..\GameTrilha.GameDomain\GameTrilha.GameDomain.csproj" />
   </ItemGroup>
 

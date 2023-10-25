@@ -20,7 +20,13 @@ public class User
 
     public double Balance { get; private set; }
 
+    public int Score { get; set; }
+
+    public ICollection<Board> Board { get; set; }
     public ICollection<Skin> Skins { get; set; } = new List<Skin>();
+    public ICollection<Match> MatchesPlayer1 { get; set; }
+    public ICollection<Match> MatchesPlayer2 { get; set; }
+    public ICollection<Match> Wins { get; set; }
 
     public User()
     {
