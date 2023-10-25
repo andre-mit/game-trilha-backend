@@ -37,9 +37,9 @@ public class UserRepository : IUserRepository
         throw new NotImplementedException();
     }
 
-    public Task<User> FindById(Guid id)
+    public async Task<User?> FindById(Guid id)
     {
-        throw new NotImplementedException();
+        return await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
     }
 
     public User FindByEmail(string email)

@@ -45,6 +45,10 @@ builder.Services.AddEntityFrameworkSqlServer()
     });
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IMatchRepository, MatchRepository>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddScoped<IMatchService, MatchService>();
 
 #region JWT
 
@@ -54,8 +58,6 @@ var key = jwtSection.Get<JwtOptions>()!.Key;
 
 builder.Services.AddAuthorization();
 builder.Services.AddJwtAuthentication(key);
-
-builder.Services.AddScoped<IAuthService, AuthService>();
 
 #endregion
 
@@ -68,10 +70,11 @@ app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
+app.UseCors(corsPolicyName);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.UseCors(corsPolicyName);
 app.MapHub<GameHub>("/game");
+app.UseCors(corsPolicyName);
 
 app.Run();

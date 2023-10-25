@@ -18,11 +18,11 @@ public class User
     [MaxLength]
     public string? Password { get; private set; }
 
-    public double Balance { get; private set; }
+    public int Balance { get; private set; }
 
     public int Score { get; set; }
 
-    public ICollection<Board> Board { get; set; }
+    public ICollection<Board> Boards { get; set; }
     public ICollection<Skin> Skins { get; set; } = new List<Skin>();
     public ICollection<Match> MatchesPlayer1 { get; set; }
     public ICollection<Match> MatchesPlayer2 { get; set; }
@@ -42,7 +42,7 @@ public class User
         Balance = 0;
     }
 
-    public void AddBalance(double value)
+    public void AddBalance(int value)
     {
         if(value <= 0)
             throw new ArgumentException("Value must be greater than zero", nameof(value));
@@ -50,7 +50,7 @@ public class User
         Balance += value;
     }
 
-    public void RemoveBalance(double value)
+    public void RemoveBalance(int value)
     {
         if(value <= 0)
             throw new ArgumentException("Value must be greater than zero", nameof(value));

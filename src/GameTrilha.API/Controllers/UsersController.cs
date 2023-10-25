@@ -23,13 +23,38 @@ public class UsersController : ControllerBase
         _userRepository = userRepository;
     }
 
-    [HttpGet("{id}")]
+    [HttpGet]
+    [Authorize]
+    public async Task<ActionResult<ListUserViewModel>> GetUser()
+    {
+        try
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var user = await _userRepository.FindById(Guid.Parse(userId));
+
+            if (user is null)
+            {
+                _logger.LogWarning("Invalid get user by token Id {userId}", userId);
+                return NotFound();
+            }
+
+            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, new List<string>());
+            return Ok(userModel);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while getting the user");
+            return BadRequest();
+        }
+    }
+
+    [HttpGet("{id:guid}")]
     public async Task<ActionResult<ListUserViewModel>> GetUserById(Guid id)
     {
         try
         {
             var user = await _userRepository.FindById(id);
-            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, new List<string>());
+            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, new List<string>());
             return Ok(userModel);
         }
         catch (NullReferenceException ex)
@@ -44,7 +69,7 @@ public class UsersController : ControllerBase
         }
     }
 
-    [HttpPost("auth")]
+    [HttpPost("login")]
     public async Task<ActionResult> Login(LoginRequestViewModel login)
     {
         try
@@ -75,7 +100,7 @@ public class UsersController : ControllerBase
             var password = BCrypt.Net.BCrypt.HashPassword(model.Password);
             var user = await _userRepository.Create(model.Name, model.Email, password);
 
-            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, new List<string>());
+            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, new List<string>());
 
             return CreatedAtAction(nameof(GetUserById), new { id = userModel.Id }, userModel);
         }

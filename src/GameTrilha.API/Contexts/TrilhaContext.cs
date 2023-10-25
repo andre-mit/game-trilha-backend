@@ -16,7 +16,7 @@ public class TrilhaContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<User>().HasMany(u => u.Skins).WithMany(s => s.Users);
-        modelBuilder.Entity<User>().HasMany(u => u.Board).WithMany(b => b.Users);
+        modelBuilder.Entity<User>().HasMany(u => u.Boards).WithMany(b => b.Users);
         modelBuilder.Entity<User>().HasMany(u => u.MatchesPlayer1).WithOne(m => m.Player1);
         modelBuilder.Entity<User>().HasMany(u => u.MatchesPlayer2).WithOne(m => m.Player2);
         modelBuilder.Entity<User>().HasMany(u => u.Wins).WithOne(m => m.Winner);

@@ -65,6 +65,6 @@ public class AuthService : IAuthService
         }
 
         _logger.LogInformation("User {Email} logged in", email);
-        return new ListUserViewModel(user.Id, user.Name, user.Email, new List<string>());
+        return new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, new List<string>());
     }
 }
