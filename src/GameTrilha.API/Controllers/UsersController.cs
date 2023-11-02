@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using GameTrilha.API.Helpers;
 using GameTrilha.API.Services.Interfaces;
 using GameTrilha.API.ViewModels.UserViewModels;
 using GameTrilha.Domain.Entities;
@@ -38,7 +39,7 @@ public class UsersController : ControllerBase
                 return NotFound();
             }
 
-            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, new List<string>());
+            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Roles.Select(x => x.Role.Name).ToList());
             return Ok(userModel);
         }
         catch (Exception ex)
@@ -48,19 +49,23 @@ public class UsersController : ControllerBase
         }
     }
 
+    [Authorize]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ListUserViewModel>> GetUserById(Guid id)
     {
         try
         {
             var user = await _userRepository.FindById(id);
-            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, new List<string>());
+
+            user.ThrowIfNull("User not found");
+
+            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Roles.Select(x => x.Role.Name).ToList());
             return Ok(userModel);
         }
-        catch (NullReferenceException ex)
+        catch (NullReferenceException)
         {
-            _logger.LogError(ex, "Invalid user");
-            return NotFound();
+            _logger.LogWarning("User not found by Id {userId}", id);
+            return NotFound("User not found");
         }
         catch (Exception ex)
         {
@@ -69,8 +74,9 @@ public class UsersController : ControllerBase
         }
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
-    public async Task<ActionResult> Login(LoginRequestViewModel login)
+    public async Task<ActionResult<string>> Login(LoginRequestViewModel login)
     {
         try
         {
@@ -78,12 +84,12 @@ public class UsersController : ControllerBase
 
             var token = _authService.GenerateToken(user);
 
-            return Ok(new { user, token });
+            return Ok(token);
         }
-        catch (NullReferenceException ex)
+        catch (NullReferenceException)
         {
-            _logger.LogError(ex, "Invalid user");
-            return NotFound();
+            _logger.LogWarning("Invalid credentials for user {email}", login.Email);
+            return NotFound("Bad Credentials");
         }
         catch (Exception ex)
         {
@@ -92,6 +98,7 @@ public class UsersController : ControllerBase
         }
     }
 
+    [AllowAnonymous]
     [HttpPost]
     public async Task<ActionResult<ListUserViewModel>> CreateUser(CreateUserViewModel model)
     {
@@ -100,7 +107,7 @@ public class UsersController : ControllerBase
             var password = BCrypt.Net.BCrypt.HashPassword(model.Password);
             var user = await _userRepository.Create(model.Name, model.Email, password);
 
-            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, new List<string>());
+            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Roles.Select(r => r.Role.Name).ToList());
 
             return CreatedAtAction(nameof(GetUserById), new { id = userModel.Id }, userModel);
         }

@@ -14,6 +14,15 @@ public class CreateUserViewModel
     public string Email { get; set; }
 
     [Required]
+    [MinLength(6)]
+    [MaxLength(50)]
     [DataType(DataType.Password)]
     public string Password { get; set; }
+
+    [Required]
+    [MinLength(6)]
+    [MaxLength(50)]
+    [DataType(DataType.Password)]
+    [Compare(nameof(Password))]
+    public string ConfirmPassword { get; set; }
 }

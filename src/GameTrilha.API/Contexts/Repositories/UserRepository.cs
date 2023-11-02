@@ -20,7 +20,10 @@ public class UserRepository : IUserRepository
             throw new Exception("Email already exists");
         }
 
+        var role = await _context.Roles.FirstOrDefaultAsync(x => x.Name == "User");
+
         var user = new User(name, email, password);
+        user.Roles = new List<UserRole> { new() { Role = role, User = user } };
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
 
@@ -29,21 +32,38 @@ public class UserRepository : IUserRepository
 
     public User Update(User user)
     {
-        throw new NotImplementedException();
+        _context.Users.Update(user);
+        _context.SaveChanges();
+        return user;
     }
 
-    public User Delete(User user)
+    public async Task<bool> Delete(Guid id)
     {
-        throw new NotImplementedException();
+        var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
+
+        if (user == null) return false;
+
+        _context.Users.Remove(user);
+        var result = await _context.SaveChangesAsync();
+        return result > 0;
+
     }
 
     public async Task<User?> FindById(Guid id)
     {
-        return await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        return await _context.Users
+            .AsNoTracking()
+            .Include(x => x.Roles)
+                .ThenInclude(x => x.Role)
+            .FirstOrDefaultAsync(x => x.Id == id);
     }
 
-    public User FindByEmail(string email)
+    public async Task<User?> FindByEmail(string email)
     {
-        throw new NotImplementedException();
+        return await _context.Users
+            .AsNoTracking()
+            .Include(x => x.Roles)
+            .ThenInclude(x => x.Role)
+            .FirstOrDefaultAsync(x => x.Email == email);
     }
 }

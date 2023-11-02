@@ -9,6 +9,9 @@ using Microsoft.IdentityModel.Tokens;
 using BCrypt.Net;
 using GameTrilha.API.Contexts;
 using Microsoft.EntityFrameworkCore;
+using GameTrilha.API.Helpers;
+using GameTrilha.Domain.Entities;
+using GameTrilha.Domain.Entities.Repositories;
 
 namespace GameTrilha.API.Services;
 
@@ -17,14 +20,25 @@ public class AuthService : IAuthService
     private readonly JwtOptions _jwtConfig;
     private readonly ILogger<AuthService> _logger;
     private readonly TrilhaContext _context;
+    private readonly IUserRepository _userRepository;
 
-    public AuthService(IOptions<JwtOptions> jwtConfig, TrilhaContext context, ILogger<AuthService> logger)
+    public AuthService(IOptions<JwtOptions> jwtConfig, TrilhaContext context, ILogger<AuthService> logger, IUserRepository userRepository)
     {
         _context = context;
         _logger = logger;
+        _userRepository = userRepository;
         _jwtConfig = jwtConfig.Value;
     }
 
+    /// <summary>
+    /// Generates a JWT token for the given user.
+    /// </summary>
+    /// <summary xml:lang="pt-BR">
+    /// Gera um token JWT para o usuário informado.
+    /// </summary>
+    /// <param name="user">The user to generate the token for.</param>
+    /// <returns>The generated token.</returns>
+    /// <seealso cref="Login(string, string)"/>
     public string GenerateToken(ListUserViewModel user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
@@ -54,17 +68,30 @@ public class AuthService : IAuthService
         return tokenHandler.WriteToken(token);
     }
 
+    /// <summary>
+    /// Authenticates a user with the given email and password.
+    /// </summary>
+    /// <summary xml:lang="pt-BR">
+    /// Autentica um usuário com o email e senha informados.
+    /// </summary>
+    /// <param name="email">The email of the user to authenticate.</param>
+    /// <param name="password">The password of the user to authenticate.</param>
+    /// <returns>The authenticated user.</returns>
+    /// <exception cref="NullReferenceException">Thrown when the user is not found or the password is incorrect.</exception>
+    /// <seealso cref="GenerateToken(ListUserViewModel)"/>
     public async Task<ListUserViewModel> Login(string email, string password)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var user = await _userRepository.FindByEmail(email);
 
-        if (user is null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
+        if (user.IsNull() || !BCrypt.Net.BCrypt.Verify(password, user!.Password))
         {
             _logger.LogError("User not found {Email}", email);
             throw new NullReferenceException("User not found");
         }
 
+        var roles = user.Roles.Select(x => new Role() { Id = x.RoleId, Name = x.Role.Name });
+
         _logger.LogInformation("User {Email} logged in", email);
-        return new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, new List<string>());
+        return new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, roles.Select(x => x.Name).ToList());
     }
 }
