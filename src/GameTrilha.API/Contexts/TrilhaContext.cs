@@ -15,7 +15,7 @@ public class TrilhaContext : DbContext
 
     public TrilhaContext(DbContextOptions<TrilhaContext> options) : base(options) { }
 
-    // Fluent API
+    // TODO: Move settings to assembly configuration
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<User>().HasMany(u => u.Skins).WithMany(s => s.Users);

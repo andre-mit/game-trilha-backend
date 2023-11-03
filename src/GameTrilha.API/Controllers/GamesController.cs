@@ -8,7 +8,7 @@ namespace GameTrilha.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class GameController : ControllerBase
+public class GamesController : ControllerBase
 {
     [Authorize]
     [HttpGet]

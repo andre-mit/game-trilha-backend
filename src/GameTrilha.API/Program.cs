@@ -1,4 +1,5 @@
 using System.Text;
+using Azure.Storage.Blobs;
 using GameTrilha.API.Contexts;
 using GameTrilha.API.Contexts.Repositories;
 using GameTrilha.API.Hubs;
@@ -46,9 +47,14 @@ builder.Services.AddEntityFrameworkSqlServer()
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMatchRepository, MatchRepository>();
+builder.Services.AddScoped<IBoardRepository, BoardRepository>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddScoped<IMatchService, MatchService>();
+builder.Services.AddTransient<IFileStorageService,  FileStorageService>();
+
+builder.Services.AddTransient(_ => new BlobServiceClient(builder.Configuration.GetConnectionString("AzureBlobStorage")));
 
 #region JWT
 
