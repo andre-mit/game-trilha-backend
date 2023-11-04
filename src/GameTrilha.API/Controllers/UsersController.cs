@@ -114,7 +114,7 @@ public class UsersController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while creating the user");
-            return BadRequest();
+            return Conflict("User already exists");
         }
     }
 }
