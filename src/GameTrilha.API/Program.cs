@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 using Azure.Storage.Blobs;
 using GameTrilha.API.Contexts;
@@ -68,7 +69,14 @@ builder.Services.AddJwtAuthentication(key);
 #endregion
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider
+        .GetRequiredService<TrilhaContext>();
 
+// Here is the migration executed
+    dbContext.Database.Migrate();
+}
 // Configure the HTTP request pipeline.
 
 app.UseSwagger();
