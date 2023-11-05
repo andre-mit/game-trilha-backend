@@ -32,7 +32,7 @@ public class BoardsController : ControllerBase
             if (board is not null)
             {
                 _logger.LogInformation("Board found with Id: {Id}", id);
-                var viewModel = new ListBoardViewModel(board.Id, board.Name, board.Description, board.StrokeColor, board.BulletColor, board.BackgroundImageSrc, board.Price);
+                var viewModel = new ListBoardViewModel(board.Id, board.Name, board.Description, board.LineColor, board.BulletColor, board.BackgroundImageSrc, board.Price);
                 return Ok(viewModel);
             }
 
@@ -55,7 +55,7 @@ public class BoardsController : ControllerBase
             var boards = await _boardRepository.ListAsync();
 
             var vmBoards = boards.Select(b =>
-                new ListBoardViewModel(b.Id, b.Name, b.Description, b.StrokeColor,
+                new ListBoardViewModel(b.Id, b.Name, b.Description, b.LineColor,
                     b.BulletColor, b.BackgroundImageSrc, b.Price));
 
             return Ok(vmBoards);
@@ -80,7 +80,7 @@ public class BoardsController : ControllerBase
 
             _logger.LogInformation("Board created with Id: {Id}", board.Id);
 
-            var viewModel = new ListBoardViewModel(board.Id, board.Name, board.Description, board.StrokeColor, board.BulletColor, board.BackgroundImageSrc, board.Price);
+            var viewModel = new ListBoardViewModel(board.Id, board.Name, board.Description, board.LineColor, board.BulletColor, board.BackgroundImageSrc, board.Price);
 
             return CreatedAtAction(nameof(GetBoard), new { id = board.Id }, viewModel);
         }
