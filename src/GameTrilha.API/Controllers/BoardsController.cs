@@ -76,7 +76,7 @@ public class BoardsController : ControllerBase
             _logger.LogInformation("Creating board");
 
             var url = await _fileStorageService.UploadImageAsync(model.Image, model.ImageFileName);
-            var board = await _boardRepository.CreateAsync(new Board(model.Name, model.Description, model.StrokeColor, model.BulletColor, url, model.Price));
+            var board = await _boardRepository.CreateAsync(new Board(model.Name, model.Description, model.LineColor, model.BulletColor, model.LineColor, url, model.Price));
 
             _logger.LogInformation("Board created with Id: {Id}", board.Id);
 

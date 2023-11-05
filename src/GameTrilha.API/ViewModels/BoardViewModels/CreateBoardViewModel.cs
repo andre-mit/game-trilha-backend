@@ -9,7 +9,11 @@ public class CreateBoardViewModel
     [MaxLength]
     public string? Description { get; set; }
     [MaxLength(7)]
-    public string StrokeColor { get; set; }
+    public string LineColor { get; set; }
+
+    [MaxLength(7)]
+    public string BorderLineColor { get; set; }
+
     [MaxLength(7)]
     public string BulletColor { get; set; }
     [MaxLength]

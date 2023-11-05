@@ -27,12 +27,12 @@ public class Board
 
     public ICollection<User> Users { get; set; }
 
-    public Board()
+    public Board(string borderLineColor)
     {
-        
+        BorderLineColor = borderLineColor;
     }
 
-    public Board(string name, string? description, string lineColor, string bulletColor, string backgroundImageSrc, double price)
+    public Board(string name, string? description, string lineColor, string bulletColor, string borderLineColor, string backgroundImageSrc, double price)
     {
         Name = name;
         Description = description;
@@ -40,9 +40,10 @@ public class Board
         BulletColor = bulletColor;
         BackgroundImageSrc = backgroundImageSrc;
         Price = price;
+        BorderLineColor = borderLineColor;
     }
 
-    public Board(Guid id, string name, string? description, string lineColor, string bulletColor, string backgroundImageSrc, double price)
+    public Board(Guid id, string name, string? description, string lineColor, string bulletColor, string backgroundImageSrc, double price, string borderLineColor)
     {
         Id = id;
         Name = name;
@@ -51,5 +52,6 @@ public class Board
         BulletColor = bulletColor;
         BackgroundImageSrc = backgroundImageSrc;
         Price = price;
+        BorderLineColor = borderLineColor;
     }
 }
