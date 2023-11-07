@@ -46,6 +46,8 @@ builder.Services.AddEntityFrameworkSqlServer()
         options.UseSqlServer(builder.Configuration.GetConnectionString("SQLSERVER_Trilha"));
     });
 
+builder.Services.AddApplicationInsightsTelemetry();
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMatchRepository, MatchRepository>();
 builder.Services.AddScoped<IBoardRepository, BoardRepository>();

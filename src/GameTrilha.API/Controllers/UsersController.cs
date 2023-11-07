@@ -39,6 +39,8 @@ public class UsersController : ControllerBase
                 return NotFound();
             }
 
+            _logger.LogInformation("User {userId} getted by token", userId);
+
             var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Roles.Select(x => x.Role.Name).ToList());
             return Ok(userModel);
         }
@@ -104,8 +106,12 @@ public class UsersController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Creating user {email}", model.Email);
+
             var password = BCrypt.Net.BCrypt.HashPassword(model.Password);
             var user = await _userRepository.Create(model.Name, model.Email, password);
+
+            _logger.LogInformation("User {email} created", model.Email);
 
             var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Roles.Select(r => r.Role.Name).ToList());
 
