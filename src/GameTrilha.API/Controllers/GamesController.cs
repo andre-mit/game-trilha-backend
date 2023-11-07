@@ -8,7 +8,7 @@ namespace GameTrilha.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class GameController : ControllerBase
+public class GamesController : ControllerBase
 {
     [Authorize]
     [HttpGet]
@@ -17,7 +17,7 @@ public class GameController : ControllerBase
         try
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            var (id, game) = GameService.Games.FirstOrDefault(x => x.Value.Players.ContainsKey(userId));
+            var (id, game) = GameService.Games.FirstOrDefault(x => x.Value.Players.ContainsKey(Guid.Parse(userId)));
             if (game == null || game.State == GameService.Game.GameState.Waiting)
                 return NotFound("Player are not in a game");
 

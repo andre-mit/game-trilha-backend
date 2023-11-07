@@ -1,5 +1,6 @@
 ﻿using GameTrilha.API.Helpers;
 using GameTrilha.API.Services;
+using GameTrilha.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using GameTrilha.GameDomain.Entities;
@@ -8,20 +9,28 @@ using static GameTrilha.API.Services.GameService;
 
 namespace GameTrilha.API.Hubs;
 
-//[Authorize]
+[Authorize]
 // Todo: Remove delayed tasks
 // TODO: Get ID of player by token (Context.UserIdentifier), after JWT implementation
 public class GameHub : Hub
 {
+    private Guid UserId => Guid.Parse(Context.UserIdentifier!);
+    private readonly IMatchService _matchService;
+
+    public GameHub(IMatchService matchService)
+    {
+        _matchService = matchService;
+    }
+
     public override async Task OnConnectedAsync()
     {
         await base.OnConnectedAsync();
-        await Clients.Caller.SendAsync("Connected", Context.ConnectionId);
+        await Clients.Caller.SendAsync("Connected", UserId);
     }
 
     public override Task OnDisconnectedAsync(Exception? exception)
     {
-        var game = Games.FirstOrDefault(x => x.Value.Players.ContainsKey(Context.ConnectionId));
+        var game = Games.FirstOrDefault(x => x.Value.Players.ContainsKey(UserId));
 
         if (game.Key == null) return base.OnDisconnectedAsync(exception);
 
@@ -35,8 +44,8 @@ public class GameHub : Hub
         if (Games[gameId].Players.Count < 2)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
-            await Clients.All.SendAsync("PlayerJoined", gameId, Context.ConnectionId);
-            Games[gameId].Players.Add(Context.ConnectionId, new Player(false));
+            await Clients.All.SendAsync("PlayerJoined", gameId, UserId);
+            Games[gameId].Players.Add(UserId, new Player(false));
         }
         else
         {
@@ -53,12 +62,13 @@ public class GameHub : Hub
     public async Task Ready(string gameId, bool moinhoDuplo)
     {
         ThrowIfPlayerIsNotInGame(gameId);
-        Games[gameId].Players[Context.ConnectionId].Ready = !Games[gameId].Players[Context.ConnectionId].Ready;
-        await Clients.OthersInGroup(gameId).SendAsync("Ready", Games[gameId].Players[Context.ConnectionId].Ready);
+        Games[gameId].Players[UserId].Ready = !Games[gameId].Players[UserId].Ready;
+        await Clients.OthersInGroup(gameId).SendAsync("Ready", Games[gameId].Players[UserId].Ready);
 
         if (Games[gameId].Players.All(player => player.Value.Ready))
         {
-            var (player1, player2) = StartGame(gameId, moinhoDuplo);
+            var (player1, player2) = await _matchService.StartMatch(gameId, moinhoDuplo, Games[gameId].Players.ElementAt(0).Key,
+                Games[gameId].Players.ElementAt(1).Key);
 
             HandleStartMatch(gameId, player1, player2);
         }
@@ -67,7 +77,7 @@ public class GameHub : Hub
     public async Task Loaded(string gameId)
     {
         ThrowIfPlayerIsNotInGame(gameId);
-        Games[gameId].Players[Context.ConnectionId].Loaded = true;
+        Games[gameId].Players[UserId].Loaded = true;
         if (Games[gameId].Players.All(player => player.Value.Loaded))
         {
             await Clients.Group(gameId).SendAsync("PlaceStage", Games[gameId].Board!.Turn, Games[gameId].Board!.PendingPieces);
@@ -78,7 +88,7 @@ public class GameHub : Hub
     {
         ThrowIfPlayerIsNotInGame(gameId);
 
-        var (moinho, winner) = Games[gameId].Board!.MovePiece(Context.ConnectionId, (byte)from[0], (byte)from[1], (byte)from[2], (byte)to[0], (byte)to[1], (byte)to[2]);
+        var (moinho, winner) = Games[gameId].Board!.MovePiece(UserId.ToString(), (byte)from[0], (byte)from[1], (byte)from[2], (byte)to[0], (byte)to[1], (byte)to[2]);
         await Clients.Group(gameId).SendAsync("Move", from, to);
         await Task.Delay(1000);
         if (!winner.HasValue)
@@ -169,7 +179,7 @@ public class GameHub : Hub
     //{
     //    ThrowIfPlayerIsNotInGame(gameId);
 
-    //    var rematchResult = ToggleRematch(gameId, Context.ConnectionId);
+    //    var rematchResult = ToggleRematch(gameId, UserId);
 
     //    if (rematchResult.HasValue)
     //    {
@@ -183,16 +193,16 @@ public class GameHub : Hub
 
     private void ThrowIfPlayerIsNotInGame(string gameId)
     {
-        if (!Games[gameId].Players.ContainsKey(Context.ConnectionId))
+        if (!Games[gameId].Players.ContainsKey(UserId))
             throw new Exception("Player not in group");
     }
 
-    private async void HandleStartMatch(string gameId, KeyValuePair<string, Color> player1,
-        KeyValuePair<string, Color> player2)
+    private async void HandleStartMatch(string gameId, KeyValuePair<Guid, Color> player1,
+        KeyValuePair<Guid, Color> player2)
     {
-        await Clients.Client(player1.Key).SendAsync("StartGame", gameId, player1.Value);
-        await Clients.Client(player2.Key).SendAsync("StartGame", gameId, player2.Value);
-        await Clients.AllExcept(player1.Key, player2.Key).SendAsync("LobbyStarted", gameId);
+        await Clients.Client(player1.Key.ToString()).SendAsync("StartGame", gameId, player1.Value);
+        await Clients.Client(player2.Key.ToString()).SendAsync("StartGame", gameId, player2.Value);
+        await Clients.AllExcept(player1.ToString(), player2.Key.ToString()).SendAsync("LobbyStarted", gameId);
     }
 
     private async void EndMatch(string gameId)
@@ -205,12 +215,12 @@ public class GameHub : Hub
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameId);
 
-        await Clients.All.SendAsync("PlayerLeft", gameId, Context.ConnectionId);
+        await Clients.All.SendAsync("PlayerLeft", gameId, UserId);
 
         switch (Games[gameId].State)
         {
             case Game.GameState.Waiting:
-                Games[gameId].Players.Remove(Context.ConnectionId);
+                Games[gameId].Players.Remove(UserId);
                 break;
             case Game.GameState.Playing:
                 await Clients.OthersInGroup(gameId).SendAsync("OpponentLeave");
@@ -232,6 +242,6 @@ public class GameHub : Hub
                 throw new ArgumentOutOfRangeException();
         }
 
-        Games[gameId].Players.Remove(Context.ConnectionId);
+        Games[gameId].Players.Remove(UserId);
     }
 }

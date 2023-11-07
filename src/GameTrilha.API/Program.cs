@@ -1,10 +1,14 @@
+using System;
 using System.Text;
+using Azure.Storage.Blobs;
 using GameTrilha.API.Contexts;
+using GameTrilha.API.Contexts.Repositories;
 using GameTrilha.API.Hubs;
 using GameTrilha.API.Services;
 using GameTrilha.API.Services.Interfaces;
 using GameTrilha.API.SetupConfigurations;
 using GameTrilha.API.SetupConfigurations.Models;
+using GameTrilha.Domain.Entities.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,6 +46,19 @@ builder.Services.AddEntityFrameworkSqlServer()
         options.UseSqlServer(builder.Configuration.GetConnectionString("SQLSERVER_Trilha"));
     });
 
+builder.Services.AddApplicationInsightsTelemetry();
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IMatchRepository, MatchRepository>();
+builder.Services.AddScoped<IBoardRepository, BoardRepository>();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddScoped<IMatchService, MatchService>();
+builder.Services.AddTransient<IFileStorageService,  FileStorageService>();
+
+builder.Services.AddTransient(_ => new BlobServiceClient(builder.Configuration.GetConnectionString("AzureBlobStorage")));
+
 #region JWT
 
 var jwtSection = builder.Configuration.GetSection("JwtSettings");
@@ -51,12 +68,17 @@ var key = jwtSection.Get<JwtOptions>()!.Key;
 builder.Services.AddAuthorization();
 builder.Services.AddJwtAuthentication(key);
 
-builder.Services.AddScoped<IAuthService, AuthService>();
-
 #endregion
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider
+        .GetRequiredService<TrilhaContext>();
 
+// Here is the migration executed
+    dbContext.Database.Migrate();
+}
 // Configure the HTTP request pipeline.
 
 app.UseSwagger();
@@ -64,10 +86,11 @@ app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
+app.UseCors(corsPolicyName);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.UseCors(corsPolicyName);
 app.MapHub<GameHub>("/game");
+app.UseCors(corsPolicyName);
 
 app.Run();
