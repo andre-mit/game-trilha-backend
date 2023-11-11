@@ -48,14 +48,9 @@ builder.Services.AddEntityFrameworkSqlServer()
 
 builder.Services.AddApplicationInsightsTelemetry();
 
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IMatchRepository, MatchRepository>();
-builder.Services.AddScoped<IBoardRepository, BoardRepository>();
+builder.Services.AddRepositories();
 
-builder.Services.AddScoped<IAuthService, AuthService>();
-
-builder.Services.AddScoped<IMatchService, MatchService>();
-builder.Services.AddTransient<IFileStorageService,  FileStorageService>();
+builder.Services.AddServices();
 
 builder.Services.AddTransient(_ => new BlobServiceClient(builder.Configuration.GetConnectionString("AzureBlobStorage")));
 
