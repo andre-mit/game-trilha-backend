@@ -4,7 +4,12 @@ namespace GameTrilha.GameDomain.Entities;
 
 public class Track
 {
-    public Place[,] Places { get; set; } = new Place[3, 3];
+    public Place[,] Places { get; set; } = new Place[3, 3]
+    {
+        { new(), new(), new() },
+        { new(), null!, new() },
+        { new(), new(), new() }
+    };
 
     public bool PlaceAvailable(byte line, byte column)
     {
@@ -17,32 +22,35 @@ public class Track
         return piece is not null && piece.Color == color;
     }
 
-    public bool Moinho(Piece piece, byte line, byte column)
+    public (bool, Guid[]) Moinho(Color color, byte line, byte column)
     {
         var place = Places[line, column];
-        if (place.Piece is null || place.Piece?.Id != piece.Id)
-            return false;
+        if (place.Piece is null || place.Piece?.Color != color)
+            return (false, null!);
 
-        var cont = 0;
+        var matches = new Guid?[] { null, null, null };
         for (var i = 0; i < 3; i++)
         {
             place = Places[line, i];
-            if (place.Piece is null)
+            if (place?.Piece is null)
                 break;
-            if (place.Piece?.Color == piece.Color) cont++;
+            if (place.Piece?.Color == color) matches[i] = place.Piece.Id;
         }
 
-        if (cont == 3) return true;
+        var moinho = matches.All(x => x != null);
 
-        cont = 0;
+        if (moinho) return (moinho, matches.Select(x => x!.Value).ToArray());
+
+        matches = new Guid?[] { null, null, null };
         for (var i = 0; i < 3; i++)
         {
             place = Places[i, column];
-            if (place.Piece is null)
+            if (place?.Piece is null)
                 break;
-            if (place.Piece?.Color == piece.Color) cont++;
+            if (place.Piece?.Color == color) matches[i] = place.Piece.Id;
         }
 
-        return cont == 3;
+        moinho = matches.All(x => x != null);
+        return moinho ? (moinho, matches.Select(x => x!.Value).ToArray()) : (false, null!);
     }
 }

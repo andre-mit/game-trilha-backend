@@ -56,8 +56,18 @@ namespace GameTrilha.GameDomain.Helpers
 
         public static bool MoveAllowed(Place from, Place to)
         {
-            return Tracks[from.Track].AvailableMoves
-                .TryGetValue(new Tuple<byte, byte>(from.Line, from.Column), out var places) && places.Contains(to);
+            return AllowedPlaces(from).Contains(to);
+        }
+
+        public static  List<Place> AllowedPlaces(Place where)
+        {
+            Tracks[where.Track].AvailableMoves
+                .TryGetValue(new Tuple<byte, byte>(where.Line, where.Column), out var places);
+
+            if(places == null)
+                throw new Exception("Place not found");
+
+            return places;
         }
     }
 }
