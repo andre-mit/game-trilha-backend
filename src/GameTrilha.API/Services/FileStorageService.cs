@@ -12,7 +12,7 @@ public class FileStorageService : IFileStorageService
     public FileStorageService(BlobServiceClient blobServiceClient, ILogger<FileStorageService> logger) =>
         (_blobServiceClient, _logger) = (blobServiceClient, logger);
 
-    public async Task<string> UploadImageAsync(string base64Image, string fileName)
+    public async Task<string> UploadImageAsync(string base64Image, string fileName, string? folder = null)
     {
         var data = new Regex(@"^data:image\/[a-z]+;base64,").Replace(base64Image, "");
         var bytes = Convert.FromBase64String(data);
@@ -20,9 +20,9 @@ public class FileStorageService : IFileStorageService
 
         _logger.LogInformation("Uploading image \"{fileName}\" to Azure Blob Storage", fileName);
 
-        var url = await UploadFileAsync(new MemoryStream(bytes), "images", fileName);
+        var url = await UploadFileAsync(new MemoryStream(bytes), "images", $"{folder}/{fileName}");
 
-        _logger.LogInformation("Image \"{fileName}\" uploaded to Azure Blob Storage with URL: \"{URL}\"", fileName, url);
+        _logger.LogInformation("Image \"{fileName}\" uploaded in folder \"{folder}\" Azure Blob Storage with URL: \"{URL}\"", fileName, folder ?? "[root]", url);
 
         return url;
     }
@@ -31,7 +31,7 @@ public class FileStorageService : IFileStorageService
     {
         var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
         _ = await containerClient.CreateIfNotExistsAsync();
-        var blobClient = containerClient.GetBlobClient($"{Guid.NewGuid():N}_{fileName}");
+        var blobClient = containerClient.GetBlobClient(fileName);
         await blobClient.UploadAsync(file, true);
 
         return blobClient.Uri.AbsoluteUri;
