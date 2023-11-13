@@ -31,4 +31,8 @@
     <ProjectReference Include="..\GameTrilha.GameDomain\GameTrilha.GameDomain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="ViewModels\SkinViewModels\" />
+  </ItemGroup>
+
 </Project>
