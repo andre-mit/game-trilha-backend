@@ -1,6 +1,7 @@
 ﻿using GameTrilha.API.Helpers;
 using GameTrilha.API.Services;
 using GameTrilha.API.Services.Interfaces;
+using GameTrilha.Domain.Entities.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using GameTrilha.GameDomain.Entities;
@@ -16,10 +17,12 @@ public class GameHub : Hub
 {
     private Guid UserId => Guid.Parse(Context.UserIdentifier!);
     private readonly IMatchService _matchService;
+    private readonly IUserRepository _userRepository;
 
-    public GameHub(IMatchService matchService)
+    public GameHub(IMatchService matchService, IUserRepository userRepository)
     {
         _matchService = matchService;
+        _userRepository = userRepository;
     }
 
     public override async Task OnConnectedAsync()
@@ -41,16 +44,31 @@ public class GameHub : Hub
 
     public async Task Join(string gameId)
     {
-        if (Games[gameId].Players.Count < 2)
+        try
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
-            await Clients.All.SendAsync("PlayerJoined", gameId, UserId);
-            Games[gameId].Players.Add(UserId, new Player(Context.ConnectionId, false));
+            if (Games[gameId].Players.Count < 2)
+            {
+                var user = await _userRepository.GetSimpleProfileByIdAsync(UserId);
+                await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
+                await Clients.All.SendAsync("PlayerJoined", gameId, user);
+                Games[gameId].Players.Add(UserId, new Player(Context.ConnectionId, false));
+            }
+            else
+            {
+                await Clients.Caller.SendAsync("LobbyFull");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await Clients.Caller.SendAsync("LobbyFull");
+            Console.WriteLine(ex);
         }
+    }
+
+    public async Task ToggleMoinho(string gameId, bool moinho)
+    {
+        ThrowIfPlayerIsNotInGame(gameId);
+        Games[gameId].Players[UserId].Moinho = moinho;
+        await Clients.All.SendAsync("ToggleMoinho", gameId, UserId, moinho);
     }
 
     public void Leave(string gameId)
@@ -59,7 +77,7 @@ public class GameHub : Hub
         HandleLeave(gameId);
     }
 
-    public async Task Ready(string gameId, bool moinhoDuplo)
+    public async Task Ready(string gameId)
     {
         ThrowIfPlayerIsNotInGame(gameId);
         Games[gameId].Players[UserId].Ready = !Games[gameId].Players[UserId].Ready;
@@ -67,7 +85,7 @@ public class GameHub : Hub
 
         if (Games[gameId].Players.All(player => player.Value.Ready))
         {
-            var (player1, player2) = await _matchService.StartMatch(gameId, moinhoDuplo, Games[gameId].Players.ElementAt(0).Key,
+            var (player1, player2) = await _matchService.StartMatch(gameId, Games[gameId].Players.ElementAt(0).Key,
                 Games[gameId].Players.ElementAt(1).Key);
 
             HandleStartMatch(gameId, player1, player2);

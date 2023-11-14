@@ -1,4 +1,5 @@
-﻿using GameTrilha.Domain.Entities;
+﻿using GameTrilha.Domain.DTOs.Users;
+using GameTrilha.Domain.Entities;
 using GameTrilha.Domain.Entities.Repositories;
 using GameTrilha.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
@@ -59,6 +60,15 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
+    public async Task<UserSimpleProfile?> GetSimpleProfileByIdAsync(Guid id)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => new UserSimpleProfile(id, x.Name, x.Avatar))
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<User?> FindByEmail(string email)
     {
         return await _context.Users
@@ -66,5 +76,14 @@ public class UserRepository : IUserRepository
             .Include(x => x.Roles)
             .ThenInclude(x => x.Role)
             .FirstOrDefaultAsync(x => x.Email == email);
+    }
+
+    public async Task<List<UserSimpleProfile>> GetSimpleProfileByIdsAsync(Guid[] ids)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .Where(x => ids.Contains(x.Id))
+            .Select(x => new UserSimpleProfile(x.Id, x.Name, x.Avatar))
+            .ToListAsync();
     }
 }

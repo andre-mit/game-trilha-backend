@@ -1,11 +1,10 @@
-﻿using System.Security.Claims;
-using GameTrilha.API.Helpers;
+﻿using GameTrilha.API.Helpers;
 using GameTrilha.API.Services.Interfaces;
 using GameTrilha.API.ViewModels.UserViewModels;
-using GameTrilha.Domain.Entities;
 using GameTrilha.Domain.Entities.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace GameTrilha.API.Controllers;
 

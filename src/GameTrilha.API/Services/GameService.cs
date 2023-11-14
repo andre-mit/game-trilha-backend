@@ -38,11 +38,13 @@ public static class GameService
         public bool Ready { get; set; }
         public bool Loaded { get; set; }
         public bool Rematch { get; set; }
+        public bool Moinho { get; set; }
 
-        public Player(string connectionId, bool ready)
+        public Player(string connectionId, bool ready, bool moinho = false)
         {
             ConnectionId = connectionId;
             Ready = ready;
+            Moinho = moinho;
             Loaded = false;
             Rematch = false;
         }
@@ -65,7 +67,7 @@ public static class GameService
         Games[gameId].Players = new Dictionary<Guid, Player>();
     }
 
-    public static (KeyValuePair<Guid, Color> player1, KeyValuePair<Guid, Color> player2) StartGame(string gameId, bool moinhoDuplo, Guid matchId)
+    public static (KeyValuePair<Guid, Color> player1, KeyValuePair<Guid, Color> player2) StartGame(string gameId, Guid matchId)
     {
         Games[gameId].State = Game.GameState.Playing;
         Games[gameId].MatchId = matchId;
@@ -82,7 +84,7 @@ public static class GameService
         };
 
 
-        Games[gameId].Board = new Board(moinhoDuplo, players);
+        Games[gameId].Board = new Board(Games[gameId].Players.All(x => x.Value.Moinho), players);
 
         return (player1, player2);
     }

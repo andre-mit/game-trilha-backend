@@ -13,9 +13,9 @@ public class MatchService : IMatchService
         _matchRepository = matchRepository;
     }
 
-    public async Task<(KeyValuePair<Guid, Color> player1, KeyValuePair<Guid, Color> player2)> StartMatch(string gameId, bool moinhoDuplo, Guid user1Id, Guid user2Id)
+    public async Task<(KeyValuePair<Guid, Color> player1, KeyValuePair<Guid, Color> player2)> StartMatch(string gameId, Guid user1Id, Guid user2Id)
     {
         var match = await _matchRepository.Create(user1Id, user2Id);
-        return GameService.StartGame(gameId, moinhoDuplo, match.Id);
+        return GameService.StartGame(gameId, match.Id);
     }
 }

@@ -14,7 +14,7 @@ public class TrilhaContext : DbContext
     public DbSet<Match> Matches { get; set; }
 
     public TrilhaContext(DbContextOptions<TrilhaContext> options) : base(options) { }
-
+    
     // TODO: Move settings to assembly configuration
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
