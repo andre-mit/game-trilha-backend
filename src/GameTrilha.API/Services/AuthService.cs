@@ -92,6 +92,6 @@ public class AuthService : IAuthService
         var roles = user.Roles.Select(x => new Role() { Id = x.RoleId, Name = x.Role.Name });
 
         _logger.LogInformation("User {Email} logged in", email);
-        return new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, roles.Select(x => x.Name).ToList());
+        return new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Avatar,roles.Select(x => x.Name).ToList());
     }
 }

@@ -34,12 +34,14 @@ public static class GameService
 
     public class Player
     {
+        public string ConnectionId { get; set; }
         public bool Ready { get; set; }
         public bool Loaded { get; set; }
         public bool Rematch { get; set; }
 
-        public Player(bool ready)
+        public Player(string connectionId, bool ready)
         {
+            ConnectionId = connectionId;
             Ready = ready;
             Loaded = false;
             Rematch = false;

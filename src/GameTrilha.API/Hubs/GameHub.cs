@@ -45,7 +45,7 @@ public class GameHub : Hub
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
             await Clients.All.SendAsync("PlayerJoined", gameId, UserId);
-            Games[gameId].Players.Add(UserId, new Player(false));
+            Games[gameId].Players.Add(UserId, new Player(Context.ConnectionId, false));
         }
         else
         {

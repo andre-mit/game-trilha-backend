@@ -1,5 +1,6 @@
 ﻿using GameTrilha.Domain.Entities;
 using GameTrilha.Domain.Entities.Repositories;
+using GameTrilha.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 
 namespace GameTrilha.API.Contexts.Repositories;
@@ -13,7 +14,7 @@ public class UserRepository : IUserRepository
         _context = context;
     }
 
-    public async Task<User> Create(string name, string email, string password)
+    public async Task<User> Create(string name, string email, string password, UserAvatar avatar)
     {
         if (await _context.Users.AnyAsync(x => x.Email == email))
         {
@@ -22,7 +23,7 @@ public class UserRepository : IUserRepository
 
         var role = await _context.Roles.FirstOrDefaultAsync(x => x.Name == "User");
 
-        var user = new User(name, email, password);
+        var user = new User(name, email, password, avatar);
         user.Roles = new List<UserRole> { new() { Role = role, User = user } };
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();

@@ -41,7 +41,7 @@ public class UsersController : ControllerBase
 
             _logger.LogInformation("User {userId} getted by token", userId);
 
-            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Roles.Select(x => x.Role.Name).ToList());
+            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Avatar, user.Roles.Select(x => x.Role.Name).ToList());
             return Ok(userModel);
         }
         catch (Exception ex)
@@ -61,7 +61,7 @@ public class UsersController : ControllerBase
 
             user.ThrowIfNull("User not found");
 
-            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Roles.Select(x => x.Role.Name).ToList());
+            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Avatar, user.Roles.Select(x => x.Role.Name).ToList());
             return Ok(userModel);
         }
         catch (NullReferenceException)
@@ -109,11 +109,11 @@ public class UsersController : ControllerBase
             _logger.LogInformation("Creating user {email}", model.Email);
 
             var password = BCrypt.Net.BCrypt.HashPassword(model.Password);
-            var user = await _userRepository.Create(model.Name, model.Email, password);
+            var user = await _userRepository.Create(model.Name, model.Email, password, model.Avatar);
 
             _logger.LogInformation("User {email} created", model.Email);
 
-            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Roles.Select(r => r.Role.Name).ToList());
+            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Avatar, user.Roles.Select(r => r.Role.Name).ToList());
 
             return CreatedAtAction(nameof(GetUserById), new { id = userModel.Id }, userModel);
         }

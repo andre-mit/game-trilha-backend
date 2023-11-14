@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using GameTrilha.Domain.ValueObjects;
 
 namespace GameTrilha.Domain.Entities;
 
@@ -22,6 +23,8 @@ public class User
 
     public int Score { get; set; }
 
+    public UserAvatar Avatar { get; set; }
+
     public ICollection<Board> Boards { get; set; }
     public ICollection<Skin> Skins { get; set; } = new List<Skin>();
     public ICollection<Match> MatchesPlayer1 { get; set; }
@@ -35,13 +38,14 @@ public class User
         
     }
 
-    public User(string name, string email, string password)
+    public User(string name, string email, string password, UserAvatar avatar, int balance = 0)
     {
         Id = Guid.NewGuid();
         Name = name;
         Email = email;
         Password = password;
-        Balance = 0;
+        Avatar = avatar;
+        Balance = balance;
     }
 
     public void AddBalance(int value)

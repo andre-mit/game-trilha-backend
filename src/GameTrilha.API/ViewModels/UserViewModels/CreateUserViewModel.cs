@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using GameTrilha.Domain.ValueObjects;
 
 namespace GameTrilha.API.ViewModels.UserViewModels;
 
@@ -25,4 +26,6 @@ public class CreateUserViewModel
     [DataType(DataType.Password)]
     [Compare(nameof(Password))]
     public string ConfirmPassword { get; set; }
+    
+    public UserAvatar Avatar { get; set; }
 }

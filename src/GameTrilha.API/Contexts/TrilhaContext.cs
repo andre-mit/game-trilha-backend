@@ -26,6 +26,11 @@ public class TrilhaContext : DbContext
 
         modelBuilder.Entity<UserRole>().HasKey(ur => new { ur.UserId, ur.RoleId });
 
+        modelBuilder.Entity<User>().OwnsOne(user => user.Avatar, ownedNavigationBuilder =>
+        {
+            ownedNavigationBuilder.ToJson();
+        });
+
         modelBuilder.AddRoles();
         modelBuilder.AddUsers();
         modelBuilder.LinkAdminUserRole();
