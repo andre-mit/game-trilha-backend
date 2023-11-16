@@ -244,4 +244,11 @@ public class GameHub : Hub
 
         Games[gameId].Players.Remove(UserId);
     }
+
+    // Events
+    private async void OnTurnSkippedInGame(object sender, (string gameId, Color turn) boardData)
+    {
+        await Clients.Group(boardData.gameId).SendAsync("TurnSkipped", boardData.turn.ToString());
+        //await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
+    }
 }
