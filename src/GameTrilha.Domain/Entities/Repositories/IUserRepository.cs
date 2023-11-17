@@ -12,4 +12,6 @@ public interface IUserRepository
     Task<UserSimpleProfile?> GetSimpleProfileByIdAsync(Guid ids);
     Task<List<UserSimpleProfile>> GetSimpleProfileByIdsAsync(Guid[] id);
     Task<User?> FindByEmail(string email);
+    Task<RecoveryPasswordCode> CreateRecoveryPasswordAsync(Guid userId, string code, DateTime expiresAt);
+    Task<bool> UseRecoveryPasswordCodeAsync(string email, string code, string newPassword);
 }

@@ -122,4 +122,52 @@ public class UsersController : ControllerBase
             return Conflict("User already exists");
         }
     }
+
+    [AllowAnonymous]
+    [HttpGet("recover-password/{email}")]
+    public async Task<ActionResult> RequestRecoverPassword(string email)
+    {
+        try
+        {
+            _logger.LogInformation("Requesting recover password for user {email}", email);
+            await _authService.RequestRecoverPasswordAsync(email);
+            return NoContent();
+        }
+        catch (NullReferenceException)
+        {
+            _logger.LogWarning("User not found by email {email}", email);
+            return NotFound("User not found");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while requesting recover password");
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("recover-password")]
+    public async Task<ActionResult> RecoverPassword(RecoverPasswordViewModel model)
+    {
+        try
+        {
+            var success = await _authService.RecoverPasswordAsync(model.Email, model.Code, model.Password);
+
+            if (!success) return Unauthorized("Invalid code");
+
+            _logger.LogInformation("Password recovered for user {email}", model.Email);
+
+            return NoContent();
+        }
+        catch (NullReferenceException)
+        {
+            _logger.LogWarning("User not found by email {email}", model.Email);
+            return NotFound("User not found");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while requesting recover password");
+            return BadRequest(ex.Message);
+        }
+    }
 }

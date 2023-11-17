@@ -78,6 +78,38 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(x => x.Email == email);
     }
 
+    public async Task<RecoveryPasswordCode> CreateRecoveryPasswordAsync(Guid userId, string code, DateTime expiresAt)
+    {
+        var recoveryRequests = await _context.RecoveryPasswordCodes.Where(r => r.UserId == userId).ToListAsync();
+
+        recoveryRequests.ForEach(r => r.Locked = true);
+
+        var recoveryPasswordCode = new RecoveryPasswordCode(code, expiresAt, false, userId);
+
+        await _context.RecoveryPasswordCodes.AddAsync(recoveryPasswordCode);
+        await _context.SaveChangesAsync();
+        return recoveryPasswordCode;
+    }
+
+    public async Task<bool> UseRecoveryPasswordCodeAsync(string email, string code, string newPassword)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == email);
+
+        if (user == null) return false;
+
+        var recoveryPasswordCode = await _context.RecoveryPasswordCodes.FirstOrDefaultAsync(x => x.UserId == user.Id && x.Code == code);
+
+        if (recoveryPasswordCode == null || recoveryPasswordCode.Locked|| recoveryPasswordCode.ExpiresAt < DateTime.UtcNow) return false;
+
+        user.Password = newPassword;
+        recoveryPasswordCode.Locked = true;
+
+        _context.Users.Update(user);
+        _context.RecoveryPasswordCodes.Update(recoveryPasswordCode);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<List<UserSimpleProfile>> GetSimpleProfileByIdsAsync(Guid[] ids)
     {
         return await _context.Users

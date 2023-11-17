@@ -33,6 +33,8 @@ public class User
 
     public ICollection<UserRole> Roles { get; set; }
 
+    public ICollection<RecoveryPasswordCode> RecoveryPasswords { get; set; }
+
     public User()
     {
         

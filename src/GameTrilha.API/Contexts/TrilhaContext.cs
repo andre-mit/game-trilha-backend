@@ -12,6 +12,7 @@ public class TrilhaContext : DbContext
     public DbSet<Skin> Skins { get; set; }
     public DbSet<Board> Boards { get; set; }
     public DbSet<Match> Matches { get; set; }
+    public DbSet<RecoveryPasswordCode> RecoveryPasswordCodes { get; set; }
 
     public TrilhaContext(DbContextOptions<TrilhaContext> options) : base(options) { }
     
@@ -23,6 +24,7 @@ public class TrilhaContext : DbContext
         modelBuilder.Entity<User>().HasMany(u => u.MatchesPlayer1).WithOne(m => m.Player1);
         modelBuilder.Entity<User>().HasMany(u => u.MatchesPlayer2).WithOne(m => m.Player2);
         modelBuilder.Entity<User>().HasMany(u => u.Wins).WithOne(m => m.Winner);
+        modelBuilder.Entity<User>().HasIndex(u=>u.Email).IsUnique();
 
         modelBuilder.Entity<UserRole>().HasKey(ur => new { ur.UserId, ur.RoleId });
 
