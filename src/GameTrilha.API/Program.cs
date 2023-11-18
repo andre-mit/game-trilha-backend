@@ -3,11 +3,13 @@ using System.Text;
 using Azure.Storage.Blobs;
 using GameTrilha.API.Contexts;
 using GameTrilha.API.Contexts.Repositories;
+using GameTrilha.API.Helpers.JsonConverters;
 using GameTrilha.API.Hubs;
 using GameTrilha.API.Services;
 using GameTrilha.API.Services.Interfaces;
 using GameTrilha.API.SetupConfigurations;
 using GameTrilha.API.SetupConfigurations.Models;
+using GameTrilha.API.ViewModels.GameViewModels;
 using GameTrilha.Domain.Entities.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Resend;
@@ -34,7 +36,12 @@ builder.Services.AddCors(options =>
 
 #endregion
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new MultidimensionalObjectArrayJsonConverter<PlaceViewModel>());
+    });
+
 builder.Services.AddSignalR();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -87,7 +94,7 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider
         .GetRequiredService<TrilhaContext>();
 
-// Here is the migration executed
+    // Here is the migration executed
     dbContext.Database.Migrate();
 }
 // Configure the HTTP request pipeline.

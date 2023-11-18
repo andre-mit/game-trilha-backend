@@ -7,7 +7,7 @@ public class ListUserProfileLobby : UserSimpleProfile
 {
     public bool Moinho { get; set; }
 
-    public ListUserProfileLobby(Guid id, string name, UserAvatar avatar, bool moinho) : base(id, name, avatar)
+    public ListUserProfileLobby(Guid id, string name, UserAvatar avatar, bool moinho) : base(id, name, avatar, null, null)
     {
         Moinho = moinho;
     }

@@ -83,12 +83,22 @@ public class GameHub : Hub
         Games[gameId].Players[UserId].Ready = !Games[gameId].Players[UserId].Ready;
         await Clients.OthersInGroup(gameId).SendAsync("Ready", Games[gameId].Players[UserId].Ready);
 
-        if (Games[gameId].Players.All(player => player.Value.Ready))
+        var players = Games[gameId].Players;
+        if (players.All(player => player.Value.Ready))
         {
-            var (player1, player2) = await _matchService.StartMatch(gameId, Games[gameId].Players.ElementAt(0).Key,
+            await _matchService.StartMatch(gameId, Games[gameId].Players.ElementAt(0).Key,
                 Games[gameId].Players.ElementAt(1).Key);
+            
+            foreach (var connectionId in players.Select(p => p.Value.ConnectionId))
+            {
+                await Clients.Client(connectionId).SendAsync("StartMatch");
+            }
 
-            HandleStartMatch(gameId, player1, player2);
+            await Clients.AllExcept(players.Select(p => p.Value.ConnectionId)).SendAsync("LobbyStarted", gameId);
+
+            Task.Delay(10000).ContinueWith(async _ => await Clients.Group(gameId).SendAsync("PlaceStage", Games[gameId].Board!.Turn, Games[gameId].Board!.PendingPieces));
+
+            //HandleStartMatch(gameId, player1, player2);
         }
     }
 
@@ -98,7 +108,6 @@ public class GameHub : Hub
         Games[gameId].Players[UserId].Loaded = true;
         if (Games[gameId].Players.All(player => player.Value.Loaded))
         {
-            await Clients.Group(gameId).SendAsync("PlaceStage", Games[gameId].Board!.Turn, Games[gameId].Board!.PendingPieces);
         }
     }
 

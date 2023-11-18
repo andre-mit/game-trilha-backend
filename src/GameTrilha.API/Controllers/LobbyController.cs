@@ -39,7 +39,6 @@ public class LobbyController : ControllerBase
                     .ToArray()
                 select new ListLobbyViewModel(lobby.Key, lobbyUsers, lobby.Value.State)).ToList();
 
-
             return Ok(viewModel);
         }
         catch (Exception ex)

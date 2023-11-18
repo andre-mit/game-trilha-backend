@@ -9,7 +9,7 @@ public interface IUserRepository
     User Update(User user);
     Task<bool> Delete(Guid id);
     Task<User?> FindById(Guid id);
-    Task<UserSimpleProfile?> GetSimpleProfileByIdAsync(Guid ids);
+    Task<UserSimpleProfile?> GetSimpleProfileByIdAsync(Guid id);
     Task<List<UserSimpleProfile>> GetSimpleProfileByIdsAsync(Guid[] id);
     Task<User?> FindByEmail(string email);
     Task<RecoveryPasswordCode> CreateRecoveryPasswordAsync(Guid userId, string code, DateTime expiresAt);

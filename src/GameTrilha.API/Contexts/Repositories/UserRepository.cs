@@ -63,9 +63,11 @@ public class UserRepository : IUserRepository
     public async Task<UserSimpleProfile?> GetSimpleProfileByIdAsync(Guid id)
     {
         return await _context.Users
+            .Include(x => x.Skin)
+            .Include(x => x.Board)
             .AsNoTracking()
             .Where(x => x.Id == id)
-            .Select(x => new UserSimpleProfile(id, x.Name, x.Avatar))
+            .Select(x => new UserSimpleProfile(id, x.Name, x.Avatar, x.Skin.Src, x.Board))
             .FirstOrDefaultAsync();
     }
 
@@ -113,9 +115,11 @@ public class UserRepository : IUserRepository
     public async Task<List<UserSimpleProfile>> GetSimpleProfileByIdsAsync(Guid[] ids)
     {
         return await _context.Users
+            .Include(x => x.Skin)
+            .Include(x=>x.Board)
             .AsNoTracking()
             .Where(x => ids.Contains(x.Id))
-            .Select(x => new UserSimpleProfile(x.Id, x.Name, x.Avatar))
+            .Select(x => new UserSimpleProfile(x.Id, x.Name, x.Avatar, x.Skin.Src, x.Board))
             .ToListAsync();
     }
 }

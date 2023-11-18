@@ -25,6 +25,9 @@ public class User
 
     public UserAvatar Avatar { get; set; }
 
+    public Skin? Skin { get; set; }
+    public Board? Board { get; set; }
+
     public ICollection<Board> Boards { get; set; }
     public ICollection<Skin> Skins { get; set; } = new List<Skin>();
     public ICollection<Match> MatchesPlayer1 { get; set; }
