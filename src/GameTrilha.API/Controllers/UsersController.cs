@@ -1,6 +1,9 @@
 ﻿using System.Security.Claims;
+using GameTrilha.API.Contexts.Repositories;
 using GameTrilha.API.Helpers;
 using GameTrilha.API.Services.Interfaces;
+using GameTrilha.API.ViewModels.BoardViewModels;
+using GameTrilha.API.ViewModels.SkinViewModels;
 using GameTrilha.API.ViewModels.UserViewModels;
 using GameTrilha.Domain.Entities;
 using GameTrilha.Domain.Entities.Repositories;
@@ -123,4 +126,36 @@ public class UsersController : ControllerBase
             return Conflict("User already exists");
         }
     }
+
+    //[Authorize]
+    [HttpGet("inventory")]
+    public async Task<ActionResult<ListInventoryViewModel>> ListInventory()
+    {
+        try
+        {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var boards = await _userRepository.ListBoards(userId); 
+        var skins = await _userRepository.ListSkins(userId); 
+
+            var vmBoards = boards!.Select(b =>
+            new ListBoardViewModel(b.Id, b.Name, b.Description, b.LineColor,
+                b.BulletColor, b.BorderLineColor, b.BackgroundImageSrc, b.Price)); 
+
+            var vmSkins = skins!.Select(s =>
+            new ListSkinViewModel(s.Id, s.Name, s.Src, s.Description,
+                s.Price));
+
+            var viewModel = new ListInventoryViewModel(vmBoards.ToList(), vmSkins.ToList());
+
+            return Ok(viewModel);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while listing skins");
+            return BadRequest();
+        }
+    }
+
 }
+

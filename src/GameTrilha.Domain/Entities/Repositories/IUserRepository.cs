@@ -7,4 +7,6 @@ public interface IUserRepository
     Task<bool> Delete(Guid id);
     Task<User?> FindById(Guid id);
     Task<User?> FindByEmail(string email);
+    Task<List<Skin>?> ListSkins(Guid id);
+    Task<List<Board>?> ListBoards(Guid id);
 }

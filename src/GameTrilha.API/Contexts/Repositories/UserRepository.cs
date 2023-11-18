@@ -1,4 +1,5 @@
-﻿using GameTrilha.Domain.Entities;
+﻿using GameTrilha.API.Controllers;
+using GameTrilha.Domain.Entities;
 using GameTrilha.Domain.Entities.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -66,4 +67,20 @@ public class UserRepository : IUserRepository
             .ThenInclude(x => x.Role)
             .FirstOrDefaultAsync(x => x.Email == email);
     }
+    public async Task<List<Skin>?> ListSkins(Guid id)
+    {
+        return await _context.Skins
+           .AsNoTracking()
+           .Where(x => x.Users.Select(u => u.Id).Contains(id))
+           .ToListAsync();
+    }
+
+    public async Task<List<Board>?> ListBoards(Guid id)
+    {
+        return await _context.Boards
+           .AsNoTracking()
+           .Where(x => x.Users.Select(u => u.Id).Contains(id))
+           .ToListAsync();
+    }
+
 }
