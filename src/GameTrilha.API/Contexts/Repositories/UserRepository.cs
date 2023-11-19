@@ -83,4 +83,20 @@ public class UserRepository : IUserRepository
            .ToListAsync();
     }
 
+    public async Task<List<Skin>?> ListSkinsRemaining(Guid id)
+    {
+        return await _context.Skins
+           .AsNoTracking()
+           .Where(x => !x.Users.Select(u => u.Id).Contains(id))
+           .ToListAsync();
+    }
+
+    public async Task<List<Board>?> ListBoardsRemaining(Guid id)
+    {
+        return await _context.Boards
+            .AsNoTracking()
+            .Where(x => !x.Users.Select(u => u.Id).Contains(id))
+            .ToListAsync();
+    }
+
 }

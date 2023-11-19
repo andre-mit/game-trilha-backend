@@ -127,20 +127,20 @@ public class UsersController : ControllerBase
         }
     }
 
-    //[Authorize]
+    [Authorize]
     [HttpGet("inventory")]
     public async Task<ActionResult<ListInventoryViewModel>> ListInventory()
     {
         try
         {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        var boards = await _userRepository.ListBoards(userId); 
-        var skins = await _userRepository.ListSkins(userId); 
+            var boards = await _userRepository.ListBoards(userId);
+            var skins = await _userRepository.ListSkins(userId);
 
             var vmBoards = boards!.Select(b =>
             new ListBoardViewModel(b.Id, b.Name, b.Description, b.LineColor,
-                b.BulletColor, b.BorderLineColor, b.BackgroundImageSrc, b.Price)); 
+                b.BulletColor, b.BorderLineColor, b.BackgroundImageSrc, b.Price));
 
             var vmSkins = skins!.Select(s =>
             new ListSkinViewModel(s.Id, s.Name, s.Src, s.Description,
@@ -155,6 +155,37 @@ public class UsersController : ControllerBase
             _logger.LogError(ex, "An error occurred while listing skins");
             return BadRequest();
         }
+    }
+
+    [Authorize]
+    [HttpGet("skinRemaining")]
+    public async Task<ActionResult<ListInventoryViewModel>> ListSkinRemaining()
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            var boards = await _userRepository.ListBoardsRemaining(userId);
+            var skins = await _userRepository.ListSkinsRemaining(userId);
+
+            var vmBoards = boards!.Select(b =>
+                new ListBoardViewModel(b.Id, b.Name, b.Description, b.LineColor,
+                    b.BulletColor, b.BorderLineColor, b.BackgroundImageSrc, b.Price));
+
+            var vmSkins = skins!.Select(s =>
+                new ListSkinViewModel(s.Id, s.Name, s.Src, s.Description,
+                 s.Price));
+
+            var viewModel = new ListInventoryViewModel(vmBoards.ToList(), vmSkins.ToList());
+            return Ok(viewModel);
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while listing skins");
+            return BadRequest();
+        }
+
     }
 
 }
