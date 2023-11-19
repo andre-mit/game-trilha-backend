@@ -33,16 +33,28 @@ public class GamesController : ControllerBase
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
             var userId = Guid.Parse(userIdString);
             var (id, game) = GameService.Games.FirstOrDefault(x => x.Value.Players.ContainsKey(userId));
-            if (game == null || game.State == GameService.Game.GameState.Waiting)
+            if (game?.Board is null || game.State == GameService.Game.GameState.Waiting)
                 return NotFound("Player are not in a game");
 
             var profiles = await _userRepository.GetSimpleProfileByIdsAsync(game.Players.Select(x => x.Key).ToArray());
 
+            var pieces = new List<PieceDetailsViewModel>();
+            for (var i = 0; i < 3; i++)
+                for (var j = 0; j < 3; j++)
+                    for (var k = 0; k < 3; k++)
+                    {
+                        if (j == 1 && k == 1) continue;
+                        var piece = game.Board.Tracks[i].Places[j, k].Piece;
+                        if (piece is null) continue;
+
+                        pieces.Add(new PieceDetailsViewModel(piece.Id, piece.Color, i, j, k));
+                    }
+
             var viewModel =
                 new ListGameDetailsViewModel(
                     id,
-                    game.Board!.Tracks,
-                    game.Board.Players[userId.ToString()],
+                    pieces.ToArray(),
+                    game.Board.Players[userId],
                     game.Board.Turn, game.Board.PendingPieces,
                     profiles.First(x => x.Id == userId),
                     profiles.First(x => x.Id != userId));

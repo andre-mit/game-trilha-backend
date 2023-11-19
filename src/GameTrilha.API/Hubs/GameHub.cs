@@ -96,9 +96,7 @@ public class GameHub : Hub
 
             await Clients.AllExcept(players.Select(p => p.Value.ConnectionId)).SendAsync("LobbyStarted", gameId);
 
-            Task.Delay(10000).ContinueWith(async _ => await Clients.Group(gameId).SendAsync("PlaceStage", Games[gameId].Board!.Turn, Games[gameId].Board!.PendingPieces));
-
-            //HandleStartMatch(gameId, player1, player2);
+            await Task.Delay(5000).ContinueWith(async _ => await Clients.Group(gameId).SendAsync("PlaceStage", Games[gameId].Board!.Turn, Games[gameId].Board!.PendingPieces));
         }
     }
 
@@ -115,7 +113,7 @@ public class GameHub : Hub
     {
         ThrowIfPlayerIsNotInGame(gameId);
 
-        var (moinho, winner) = Games[gameId].Board!.MovePiece(UserId.ToString(), (byte)from[0], (byte)from[1], (byte)from[2], (byte)to[0], (byte)to[1], (byte)to[2]);
+        var (moinho, winner) = Games[gameId].Board!.MovePiece(UserId, (byte)from[0], (byte)from[1], (byte)from[2], (byte)to[0], (byte)to[1], (byte)to[2]);
         await Clients.Group(gameId).SendAsync("Move", from, to);
         await Task.Delay(1000);
         if (!winner.HasValue)
@@ -145,7 +143,7 @@ public class GameHub : Hub
         ThrowIfPlayerIsNotInGame(gameId);
 
         var color = Games[gameId].Board!.Turn;
-        var (pendingPieces, moinho, winner, pieceId) = Games[gameId].Board!.PlacePiece(Context.ConnectionId, (byte)place[0], (byte)place[1], (byte)place[2]);
+        var (pendingPieces, moinho, winner, pieceId) = Games[gameId].Board!.PlacePiece(UserId, (byte)place[0], (byte)place[1], (byte)place[2]);
 
         await Clients.Group(gameId).SendAsync("Place", pieceId, place, color, pendingPieces);
 
@@ -177,7 +175,7 @@ public class GameHub : Hub
     public async Task Remove(string gameId, int[] place)
     {
         ThrowIfPlayerIsNotInGame(gameId);
-        var winner = Games[gameId].Board!.RemovePiece(Context.ConnectionId, (byte)place[0], (byte)place[1],
+        var winner = Games[gameId].Board!.RemovePiece(UserId, (byte)place[0], (byte)place[1],
             (byte)place[2]);
 
         await Clients.Group(gameId).SendAsync("Remove", place);

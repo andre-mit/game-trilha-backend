@@ -7,7 +7,7 @@ namespace GameTrilha.API.ViewModels.GameViewModels;
 public class ListGameDetailsViewModel
 {
     public string GameId { get; set; }
-    public TrackViewModel[] Board { get; set; }
+    public PieceDetailsViewModel[] Pieces { get; set; }
     public Color PlayerColor { get; set; }
     public Color Turn { get; set; }
     public UserSimpleProfile Profile { get; set; }
@@ -15,10 +15,10 @@ public class ListGameDetailsViewModel
 
     public Dictionary<Color, byte> PendingPieces { get; set; }
 
-    public ListGameDetailsViewModel(string gameId, Track[] board, Color playerColor, Color turn, Dictionary<Color, byte> pendingPieces, UserSimpleProfile profile, UserSimpleProfile opponentProfile)
+    public ListGameDetailsViewModel(string gameId, PieceDetailsViewModel[] pieces, Color playerColor, Color turn, Dictionary<Color, byte> pendingPieces, UserSimpleProfile profile, UserSimpleProfile opponentProfile)
     {
         GameId = gameId;
-        Board = TrackViewModel.ParseTrackArray(board);
+        Pieces = pieces;
         PlayerColor = playerColor;
         Turn = turn;
         PendingPieces = pendingPieces;

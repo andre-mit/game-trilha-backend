@@ -77,10 +77,10 @@ public static class GameService
         var player2 =
             new KeyValuePair<Guid, Color>(Games[gameId].Players.ElementAt(1).Key, RandomColor.GetOppositeColor(player1.Value));
 
-        var players = new Dictionary<string, Color>
+        var players = new Dictionary<Guid, Color>
         {
-            { player1.Key.ToString(), player1.Value },
-            { player2.Key.ToString(), player2.Value }
+            { player1.Key, player1.Value },
+            { player2.Key, player2.Value }
         };
 
 

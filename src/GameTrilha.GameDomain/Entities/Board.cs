@@ -30,11 +30,11 @@ public class Board
     public byte BlackRemaningMoves { get; private set; }
     public bool ActivateRemaningMoves { get; private set; }
     public Color Turn { get; set; } = Color.White;
-    public Dictionary<string, Color> Players { get; init; }
+    public Dictionary<Guid, Color> Players { get; init; }
 
     public GameStage Stage { get; set; }
 
-    public Board(bool moinhoDuplo, Dictionary<string, Color> players, byte maxDrawMoves = 10)
+    public Board(bool moinhoDuplo, Dictionary<Guid, Color> players, byte maxDrawMoves = 10)
     {
         MoinhoDuplo = moinhoDuplo;
         Stage = GameStage.Place;
@@ -77,7 +77,7 @@ public class Board
     ///    Dictionary with the amount of pieces pending to place for each color
     /// </returns>
     /// <exception cref="InvalidOperationException">Operation is not valid</exception>
-    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId) PlacePiece(string player, byte track, byte line, byte column)
+    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId) PlacePiece(Guid player, byte track, byte line, byte column)
     {
         var color = Players[player];
 
@@ -132,7 +132,7 @@ public class Board
     /// winner: caso o jogador tenha vencido após a movimentação (Pode retornar null caso seja empate)
     /// </returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public (bool moinho, bool? winner) MovePiece(string player, byte originTrack, byte originLine, byte originColumn, byte destinationTrack,
+    public (bool moinho, bool? winner) MovePiece(Guid player, byte originTrack, byte originLine, byte originColumn, byte destinationTrack,
         byte destinationLine, byte destinationColumn)
     {
         var color = Players[player];
@@ -200,7 +200,7 @@ public class Board
     /// <param name="column">Column Allowed values: 0 | 1 | 2</param>
     /// <returns>Winner</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public bool RemovePiece(string player, byte track, byte line, byte column)
+    public bool RemovePiece(Guid player, byte track, byte line, byte column)
     {
         var color = Players.First(x => x.Key != player).Value;
 
@@ -248,7 +248,7 @@ public class Board
     /// All pending pieces to place, if there is a moinho after the placement and if the player has won after the placement
     /// </returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId) PlaceTimeout(string player)
+    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId) PlaceTimeout(Guid player)
     {
         if (Stage != GameStage.Place)
             throw new InvalidOperationException("Não é possível realizar o timeout pois não está na fase de colocação");
@@ -272,7 +272,7 @@ public class Board
     /// <returns></returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     /// <exception cref="InvalidOperationException"></exception>
-    public bool GameTimeout(string player)
+    public bool GameTimeout(Guid player)
     {
         var color = Players[player];
         if (color != Turn)
