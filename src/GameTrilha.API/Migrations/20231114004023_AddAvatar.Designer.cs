@@ -4,6 +4,7 @@ using GameTrilha.API.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GameTrilha.API.Migrations
 {
     [DbContext(typeof(TrilhaContext))]
-    partial class TrilhaContextModelSnapshot : ModelSnapshot
+    [Migration("20231114004023_AddAvatar")]
+    partial class AddAvatar
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -113,33 +116,6 @@ namespace GameTrilha.API.Migrations
                     b.ToTable("Matches");
                 });
 
-            modelBuilder.Entity("GameTrilha.Domain.Entities.RecoveryPasswordCode", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("Locked")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("RecoveryPasswordCodes");
-                });
-
             modelBuilder.Entity("GameTrilha.Domain.Entities.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -201,9 +177,6 @@ namespace GameTrilha.API.Migrations
                     b.Property<int>("Balance")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("BoardId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -220,17 +193,7 @@ namespace GameTrilha.API.Migrations
                     b.Property<int>("Score")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("SkinId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("BoardId");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.HasIndex("SkinId");
 
                     b.ToTable("Users");
 
@@ -241,7 +204,7 @@ namespace GameTrilha.API.Migrations
                             Balance = 0,
                             Email = "admin@trilha.com",
                             Name = "Administrador",
-                            Password = "$2a$11$/oDGDm.T.IfFxndzuvTnA.7HerMyerC5Tt6wc9wW1q02Mxe2FeP8q",
+                            Password = "$2a$11$cRC4J9HPtfeZYi5Xh7vD8.Zz0GqMjObwIrka2k380hm2d6o8rGWnS",
                             Score = 0
                         });
                 });
@@ -326,27 +289,8 @@ namespace GameTrilha.API.Migrations
                     b.Navigation("Winner");
                 });
 
-            modelBuilder.Entity("GameTrilha.Domain.Entities.RecoveryPasswordCode", b =>
-                {
-                    b.HasOne("GameTrilha.Domain.Entities.User", "User")
-                        .WithMany("RecoveryPasswords")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("GameTrilha.Domain.Entities.User", b =>
                 {
-                    b.HasOne("GameTrilha.Domain.Entities.Board", "Board")
-                        .WithMany("UsersOwn")
-                        .HasForeignKey("BoardId");
-
-                    b.HasOne("GameTrilha.Domain.Entities.Skin", "Skin")
-                        .WithMany("UsersOwn")
-                        .HasForeignKey("SkinId");
-
                     b.OwnsOne("GameTrilha.Domain.ValueObjects.UserAvatar", "Avatar", b1 =>
                         {
                             b1.Property<Guid>("UserId")
@@ -430,10 +374,6 @@ namespace GameTrilha.API.Migrations
 
                     b.Navigation("Avatar")
                         .IsRequired();
-
-                    b.Navigation("Board");
-
-                    b.Navigation("Skin");
                 });
 
             modelBuilder.Entity("GameTrilha.Domain.Entities.UserRole", b =>
@@ -470,19 +410,9 @@ namespace GameTrilha.API.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("GameTrilha.Domain.Entities.Board", b =>
-                {
-                    b.Navigation("UsersOwn");
-                });
-
             modelBuilder.Entity("GameTrilha.Domain.Entities.Role", b =>
                 {
                     b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("GameTrilha.Domain.Entities.Skin", b =>
-                {
-                    b.Navigation("UsersOwn");
                 });
 
             modelBuilder.Entity("GameTrilha.Domain.Entities.User", b =>
@@ -490,8 +420,6 @@ namespace GameTrilha.API.Migrations
                     b.Navigation("MatchesPlayer1");
 
                     b.Navigation("MatchesPlayer2");
-
-                    b.Navigation("RecoveryPasswords");
 
                     b.Navigation("Roles");
 

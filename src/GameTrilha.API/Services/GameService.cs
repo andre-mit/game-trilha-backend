@@ -34,13 +34,17 @@ public static class GameService
 
     public class Player
     {
+        public string ConnectionId { get; set; }
         public bool Ready { get; set; }
         public bool Loaded { get; set; }
         public bool Rematch { get; set; }
+        public bool Moinho { get; set; }
 
-        public Player(bool ready)
+        public Player(string connectionId, bool ready, bool moinho = false)
         {
+            ConnectionId = connectionId;
             Ready = ready;
+            Moinho = moinho;
             Loaded = false;
             Rematch = false;
         }
@@ -63,7 +67,7 @@ public static class GameService
         Games[gameId].Players = new Dictionary<Guid, Player>();
     }
 
-    public static (KeyValuePair<Guid, Color> player1, KeyValuePair<Guid, Color> player2) StartGame(string gameId, bool moinhoDuplo, Guid matchId)
+    public static (KeyValuePair<Guid, Color> player1, KeyValuePair<Guid, Color> player2) StartGame(string gameId, Guid matchId)
     {
         Games[gameId].State = Game.GameState.Playing;
         Games[gameId].MatchId = matchId;
@@ -73,14 +77,14 @@ public static class GameService
         var player2 =
             new KeyValuePair<Guid, Color>(Games[gameId].Players.ElementAt(1).Key, RandomColor.GetOppositeColor(player1.Value));
 
-        var players = new Dictionary<string, Color>
+        var players = new Dictionary<Guid, Color>
         {
-            { player1.Key.ToString(), player1.Value },
-            { player2.Key.ToString(), player2.Value }
+            { player1.Key, player1.Value },
+            { player2.Key, player2.Value }
         };
 
 
-        Games[gameId].Board = new Board(moinhoDuplo, players);
+        Games[gameId].Board = new Board(Games[gameId].Players.All(x => x.Value.Moinho), players);
 
         return (player1, player2);
     }
