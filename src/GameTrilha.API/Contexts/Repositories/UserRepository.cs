@@ -80,6 +80,39 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(x => x.Email == email);
     }
 
+    public async Task<List<Skin>?> ListSkins(Guid id)
+    {
+        return await _context.Skins
+           .AsNoTracking()
+           .Where(x => x.Users.Select(u => u.Id).Contains(id))
+           .ToListAsync();
+    }
+
+    public async Task<List<Board>?> ListBoards(Guid id)
+    {
+        return await _context.Boards
+           .AsNoTracking()
+           .Where(x => x.Users.Select(u => u.Id).Contains(id))
+           .ToListAsync();
+    }
+
+    public async Task<List<Skin>?> ListSkinsRemaining(Guid id)
+    {
+        return await _context.Skins
+           .AsNoTracking()
+           .Where(x => !x.Users.Select(u => u.Id).Contains(id))
+           .ToListAsync();
+    }
+
+    public async Task<List<Board>?> ListBoardsRemaining(Guid id)
+    {
+        return await _context.Boards
+            .AsNoTracking()
+            .Where(x => !x.Users.Select(u => u.Id).Contains(id))
+            .ToListAsync();
+    }
+
+
     public async Task<RecoveryPasswordCode> CreateRecoveryPasswordAsync(Guid userId, string code, DateTime expiresAt)
     {
         var recoveryRequests = await _context.RecoveryPasswordCodes.Where(r => r.UserId == userId).ToListAsync();
