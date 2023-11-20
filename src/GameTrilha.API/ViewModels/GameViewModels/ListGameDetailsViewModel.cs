@@ -1,5 +1,4 @@
 ﻿using GameTrilha.Domain.DTOs.Users;
-using GameTrilha.GameDomain.Entities;
 using GameTrilha.GameDomain.Enums;
 
 namespace GameTrilha.API.ViewModels.GameViewModels;

@@ -35,7 +35,7 @@ public class LobbyController : ControllerBase
 
             List<ListLobbyViewModel> viewModel = (from lobby in lobbies
                 let lobbyUsers = users.Where(x => lobby.Value.Players.ContainsKey(x.Id))
-                    .Select(x => new ListUserProfileLobby(x.Id, x.Name, x.Avatar, lobby.Value.Players.First(p => p.Key == x.Id).Value.Moinho))
+                    .Select(x => new ListUserProfileLobby(x.Id, x.Name, x.Avatar, lobby.Value.Players.First(p => p.Key == x.Id).Value.Moinho, lobby.Value.Players.First(p => p.Key == x.Id).Value.Ready))
                     .ToArray()
                 select new ListLobbyViewModel(lobby.Key, lobbyUsers, lobby.Value.State)).ToList();
 

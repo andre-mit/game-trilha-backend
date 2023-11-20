@@ -84,6 +84,7 @@ public class GameHub : Hub
         await Clients.OthersInGroup(gameId).SendAsync("Ready", Games[gameId].Players[UserId].Ready);
 
         var players = Games[gameId].Players;
+        await Clients.All.SendAsync("Ready", gameId, UserId, Games[gameId].Players[UserId].Ready);
         if (players.All(player => player.Value.Ready))
         {
             await _matchService.StartMatch(gameId, Games[gameId].Players.ElementAt(0).Key,
@@ -98,6 +99,7 @@ public class GameHub : Hub
 
             await Task.Delay(5000).ContinueWith(async _ => await Clients.Group(gameId).SendAsync("PlaceStage", Games[gameId].Board!.Turn, Games[gameId].Board!.PendingPieces));
         }
+
     }
 
     public async Task Loaded(string gameId)
@@ -220,14 +222,6 @@ public class GameHub : Hub
     {
         if (!Games[gameId].Players.ContainsKey(UserId))
             throw new Exception("Player not in group");
-    }
-
-    private async void HandleStartMatch(string gameId, KeyValuePair<Guid, Color> player1,
-        KeyValuePair<Guid, Color> player2)
-    {
-        await Clients.Client(player1.Key.ToString()).SendAsync("StartGame", gameId, player1.Value);
-        await Clients.Client(player2.Key.ToString()).SendAsync("StartGame", gameId, player2.Value);
-        await Clients.AllExcept(player1.ToString(), player2.Key.ToString()).SendAsync("LobbyStarted", gameId);
     }
 
     private async void EndMatch(string gameId)
