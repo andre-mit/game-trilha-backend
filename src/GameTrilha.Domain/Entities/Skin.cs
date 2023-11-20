@@ -10,6 +10,7 @@ public class Skin
     public double Price { get; set; }
 
     public ICollection<User> Users { get; set; } = new List<User>();
+    public ICollection<User> UsersOwn { get; set; }
 
     public Skin()
     {

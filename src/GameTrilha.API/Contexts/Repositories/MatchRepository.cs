@@ -16,8 +16,8 @@ public class MatchRepository : IMatchRepository
 
     public async Task<Match> Create(Guid user1Id, Guid user2Id)
     {
-        var user1 = _context.Users.AsNoTracking().FirstOrDefault(x => x.Id == user1Id);
-        var user2 = _context.Users.AsNoTracking().FirstOrDefault(x => x.Id == user2Id);
+        var user1 = _context.Users.FirstOrDefault(x => x.Id == user1Id);
+        var user2 = _context.Users.FirstOrDefault(x => x.Id == user2Id);
 
         if (user1 == null || user2 == null)
         {

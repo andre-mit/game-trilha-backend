@@ -1,14 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using GameTrilha.Domain.ValueObjects;
 
 namespace GameTrilha.API.ViewModels.UserViewModels;
 
-public class CreateUserViewModel
+public class RecoverPasswordViewModel
 {
-    [Required]
-    [MaxLength(100)]
-    public string Name { get; set; }
-
     [Required]
     [MaxLength(100)]
     [EmailAddress]
@@ -26,6 +21,9 @@ public class CreateUserViewModel
     [DataType(DataType.Password)]
     [Compare(nameof(Password))]
     public string ConfirmPassword { get; set; }
-    
-    public UserAvatar Avatar { get; set; }
+
+    [Required]
+    [MinLength(6)]
+    [MaxLength(6)]
+    public string Code { get; set; }
 }

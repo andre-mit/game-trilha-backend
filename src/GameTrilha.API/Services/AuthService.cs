@@ -1,17 +1,14 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+﻿using GameTrilha.API.Helpers;
 using GameTrilha.API.Services.Interfaces;
 using GameTrilha.API.SetupConfigurations.Models;
 using GameTrilha.API.ViewModels.UserViewModels;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using BCrypt.Net;
-using GameTrilha.API.Contexts;
-using Microsoft.EntityFrameworkCore;
-using GameTrilha.API.Helpers;
 using GameTrilha.Domain.Entities;
 using GameTrilha.Domain.Entities.Repositories;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace GameTrilha.API.Services;
 
@@ -19,14 +16,15 @@ public class AuthService : IAuthService
 {
     private readonly JwtOptions _jwtConfig;
     private readonly ILogger<AuthService> _logger;
-    private readonly TrilhaContext _context;
     private readonly IUserRepository _userRepository;
+    private readonly IEmailSenderService _emailSenderService;
 
-    public AuthService(IOptions<JwtOptions> jwtConfig, TrilhaContext context, ILogger<AuthService> logger, IUserRepository userRepository)
+
+    public AuthService(IOptions<JwtOptions> jwtConfig, ILogger<AuthService> logger, IUserRepository userRepository, IEmailSenderService emailSenderService)
     {
-        _context = context;
         _logger = logger;
         _userRepository = userRepository;
+        _emailSenderService = emailSenderService;
         _jwtConfig = jwtConfig.Value;
     }
 
@@ -89,9 +87,32 @@ public class AuthService : IAuthService
             throw new NullReferenceException("User not found");
         }
 
-        var roles = user.Roles.Select(x => new Role() { Id = x.RoleId, Name = x.Role.Name });
+        var roles = user.Roles.Select(x => new Role { Id = x.RoleId, Name = x.Role.Name });
 
         _logger.LogInformation("User {Email} logged in", email);
-        return new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, roles.Select(x => x.Name).ToList());
+        return new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Avatar, roles.Select(x => x.Name).ToList());
+    }
+
+    public async Task<bool> RecoverPasswordAsync(string email, string code, string newPassword)
+    {
+        var user = await _userRepository.FindByEmail(email);
+
+        user.ThrowIfNull("User not found");
+
+        return await _userRepository.UseRecoveryPasswordCodeAsync(email, code, BCrypt.Net.BCrypt.HashPassword(newPassword));
+    }
+
+    public async Task RequestRecoverPasswordAsync(string email)
+    {
+        var user = await _userRepository.FindByEmail(email);
+
+        user.ThrowIfNull("User not found");
+        
+        Random generator = new();
+        var code = generator.Next(0, 1000000).ToString("D6");
+
+        _ = await _userRepository.CreateRecoveryPasswordAsync(user!.Id, code, DateTime.UtcNow.AddMinutes(10));
+
+        await _emailSenderService.SendRecoverPasswordAsync(user.Email, user.Name, code);
     }
 }

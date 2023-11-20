@@ -26,6 +26,7 @@ public class Board
     public double Price { get; set; }
 
     public ICollection<User> Users { get; set; }
+    public ICollection<User> UsersOwn { get; set; }
 
     public Board(string borderLineColor)
     {

@@ -4,6 +4,7 @@ using GameTrilha.API.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GameTrilha.API.Migrations
 {
     [DbContext(typeof(TrilhaContext))]
-    partial class TrilhaContextModelSnapshot : ModelSnapshot
+    [Migration("20231117052619_RecoveryPasswordCode")]
+    partial class RecoveryPasswordCode
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -201,9 +204,6 @@ namespace GameTrilha.API.Migrations
                     b.Property<int>("Balance")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("BoardId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -220,17 +220,10 @@ namespace GameTrilha.API.Migrations
                     b.Property<int>("Score")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("SkinId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("BoardId");
 
                     b.HasIndex("Email")
                         .IsUnique();
-
-                    b.HasIndex("SkinId");
 
                     b.ToTable("Users");
 
@@ -241,7 +234,7 @@ namespace GameTrilha.API.Migrations
                             Balance = 0,
                             Email = "admin@trilha.com",
                             Name = "Administrador",
-                            Password = "$2a$11$/oDGDm.T.IfFxndzuvTnA.7HerMyerC5Tt6wc9wW1q02Mxe2FeP8q",
+                            Password = "$2a$11$zYp1grVUVhtJBVLlzL817eyNFuVUfL89t3MDaLRspfSDIQEIaYmoO",
                             Score = 0
                         });
                 });
@@ -339,14 +332,6 @@ namespace GameTrilha.API.Migrations
 
             modelBuilder.Entity("GameTrilha.Domain.Entities.User", b =>
                 {
-                    b.HasOne("GameTrilha.Domain.Entities.Board", "Board")
-                        .WithMany("UsersOwn")
-                        .HasForeignKey("BoardId");
-
-                    b.HasOne("GameTrilha.Domain.Entities.Skin", "Skin")
-                        .WithMany("UsersOwn")
-                        .HasForeignKey("SkinId");
-
                     b.OwnsOne("GameTrilha.Domain.ValueObjects.UserAvatar", "Avatar", b1 =>
                         {
                             b1.Property<Guid>("UserId")
@@ -430,10 +415,6 @@ namespace GameTrilha.API.Migrations
 
                     b.Navigation("Avatar")
                         .IsRequired();
-
-                    b.Navigation("Board");
-
-                    b.Navigation("Skin");
                 });
 
             modelBuilder.Entity("GameTrilha.Domain.Entities.UserRole", b =>
@@ -470,19 +451,9 @@ namespace GameTrilha.API.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("GameTrilha.Domain.Entities.Board", b =>
-                {
-                    b.Navigation("UsersOwn");
-                });
-
             modelBuilder.Entity("GameTrilha.Domain.Entities.Role", b =>
                 {
                     b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("GameTrilha.Domain.Entities.Skin", b =>
-                {
-                    b.Navigation("UsersOwn");
                 });
 
             modelBuilder.Entity("GameTrilha.Domain.Entities.User", b =>
