@@ -1,6 +1,7 @@
 ﻿using GameTrilha.GameDomain.Enums;
 using GameTrilha.GameDomain.Helpers;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace GameTrilha.GameDomain.Entities;
@@ -22,6 +23,7 @@ public class Board
         { Color.Black, 9 }
     };
 
+    private readonly string GameId;
     public bool MoinhoDuplo { get; init; }
     public readonly List<Guid[]> PendingMoinhoDuplo = new();
 
@@ -36,19 +38,22 @@ public class Board
     public int defaultTurnTimeInSeconds { get; private set; } = 15;
     private bool _isTurnSkipped;
     public Timer turnTimer;
-    public event EventHandler TurnSkipped;
+    public event EventHandler<(string gameId, Color turn)> TurnSkipped;
 
     public Dictionary<Guid, Color> Players { get; init; }
 
     public GameStage Stage { get; set; }
 
-    public Board(bool moinhoDuplo, Dictionary<Guid, Color> players, byte maxDrawMoves = 10)
+    public Board(string gameId, bool moinhoDuplo, Dictionary<Guid, Color> players, byte maxDrawMoves = 10)
     {
+        GameId = gameId;
         MoinhoDuplo = moinhoDuplo;
         Stage = GameStage.Place;
         WhiteRemaningMoves = maxDrawMoves;
         BlackRemaningMoves = maxDrawMoves;
         Players = players;
+
+        TurnSkipped += (sender, args) => { };
     }
 
     public Track[] Tracks { get; init; } = { new(), new(), new() };
@@ -256,7 +261,7 @@ public class Board
     /// All pending pieces to place, if there is a moinho after the placement and if the player has won after the placement
     /// </returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId) PlaceTimeout(Guid player)
+    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId, int[] place) PlaceTimeout(Guid player)
     {
         if (Stage != GameStage.Place)
             throw new InvalidOperationException("Não é possível realizar o timeout pois não está na fase de colocação");
@@ -267,7 +272,11 @@ public class Board
 
         var availablePlaces = GetAvailablePlaces();
         var (track, line, column) = availablePlaces[new Random().Next(0, availablePlaces.Count)];
-        return PlacePiece(player, track, line, column);
+        var (pendingPieces, moinho, winner, pieceId) = PlacePiece(player, track, line, column);
+
+        int[] place = { track, line, column };
+
+        return (pendingPieces, moinho, winner, pieceId, place);
     }
 
     /// <summary>
@@ -504,13 +513,15 @@ public class Board
         }
     }
 
-    private void ToggleTurn(bool moinho = false) {
-        if(moinho)
+    private void ToggleTurn(bool moinho = false)
+    {
+        if (moinho)
         {
             return;
         }
 
-        switch (Turn) {
+        switch (Turn)
+        {
             case Color.White:
                 Turn = Color.Black;
                 break;
@@ -519,14 +530,20 @@ public class Board
                 break;
         }
 
+        if (Stage == GameStage.Game)
+            TimerSet();
+    }
+
+    private void TimerSet()
+    {
+
         if (_isTurnSkipped)
         {
             _isTurnSkipped = false;
-            TurnSkipped?.Invoke(this, EventArgs.Empty);
+            TurnSkipped?.Invoke(this, (GameId, Turn));
         }
 
         TimerCallback turnTimerTimeout = new TimerCallback(OnTurnTimeout);
         turnTimer = new Timer(turnTimerTimeout, null, defaultTurnTimeInSeconds * 1000, Timeout.Infinite);
-
     }
 }

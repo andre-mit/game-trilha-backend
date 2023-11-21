@@ -8,6 +8,10 @@ using GameTrilha.Domain.Entities;
 using GameTrilha.GameDomain.Enums;
 using static GameTrilha.API.Services.GameService;
 using GameTrilha.API.Contexts.Repositories;
+using NuGet.Protocol.Plugins;
+using System.Reflection;
+using System.Drawing;
+using Color = GameTrilha.GameDomain.Enums.Color;
 
 namespace GameTrilha.API.Hubs;
 
@@ -20,12 +24,24 @@ public class GameHub : Hub
     private readonly IMatchService _matchService;
     private readonly IUserRepository _userRepository;
     private readonly IRankingService _rankingService;
+    private readonly IHubContext<GameHub> _gameHub;
 
-    public GameHub(IMatchService matchService, IUserRepository userRepository, IRankingService rankingService)
+    public GameHub(IMatchService matchService, IUserRepository userRepository, IRankingService rankingService, IHubContext<GameHub> gameHub)
     {
         _matchService = matchService;
         _userRepository = userRepository;
         _rankingService = rankingService;
+        _gameHub = gameHub;
+
+        GameService.BoardCreated += OnBoardCreated;
+    }
+
+    private void AttachTurnSkippedEvent(GameService.Game game)
+    {
+        if (game.Board != null)
+        {
+            game.Board.TurnSkipped += OnTurnSkippedInGame;
+        }
     }
 
     public override async Task OnConnectedAsync()
@@ -314,10 +330,21 @@ public class GameHub : Hub
         EndMatch(gameId);
     }
 
-    // Events
-    private async void OnTurnSkippedInGame(object sender, (string gameId, Color turn) boardData)
+    private async Task SendMoveStage(string gameId, Color turn)
     {
-        await Clients.Group(boardData.gameId).SendAsync("TurnSkipped", boardData.turn.ToString());
-        //await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
+        if (Games[gameId].Board!.Stage == GameStage.Game)
+            await _gameHub.Clients.Group(gameId).SendAsync("MoveStage", turn);
+    }
+
+    // Events
+    private async void OnTurnSkippedInGame(object sender, (string gameId, Color turn) args)
+    {
+        await SendMoveStage(args.gameId, args.turn);
+    }
+
+
+    private void OnBoardCreated(object sender, (string gameId, Game game) args)
+    {
+        AttachTurnSkippedEvent(args.game);
     }
 }
