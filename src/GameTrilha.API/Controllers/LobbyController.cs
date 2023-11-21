@@ -44,7 +44,7 @@ public class LobbyController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while getting the lobbies");
-            return BadRequest();
+            return BadRequest("An error occurred while getting the lobbies");
         }
     }
 }
