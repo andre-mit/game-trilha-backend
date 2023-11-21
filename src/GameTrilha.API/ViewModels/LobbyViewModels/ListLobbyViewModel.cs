@@ -2,4 +2,4 @@
 
 namespace GameTrilha.API.ViewModels.LobbyViewModels;
 
-public record ListLobbyViewModel(string Name, string[] Players, GameService.Game.GameState State);
+public record ListLobbyViewModel(string Name, ListUserProfileLobby[] Players, GameService.Game.GameState State);

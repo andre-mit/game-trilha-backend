@@ -9,16 +9,19 @@ namespace GameTrilha.API.Services;
 public static class GameService
 {
     public static readonly ConcurrentDictionary<string, Game> Games = new(Enumerable.Range(1, 20).ToDictionary(x => x.ToString(), x => new Game()));
+    
+    public static event EventHandler<(string gameId, Color turn)> TurnSkippedInGame;
 
     public class Game
     {
-        public Dictionary<string, Player> Players { get; set; }
+        public Dictionary<Guid, Player> Players { get; set; }
         public Board? Board { get; set; }
         public GameState State { get; set; }
+        public Guid MatchId { get; set; }
 
         public Game()
         {
-            Players = new Dictionary<string, Player>();
+            Players = new Dictionary<Guid, Player>();
             State = GameState.Waiting;
             Board = null;
         }
@@ -33,19 +36,23 @@ public static class GameService
 
     public class Player
     {
+        public string ConnectionId { get; set; }
         public bool Ready { get; set; }
         public bool Loaded { get; set; }
         public bool Rematch { get; set; }
+        public bool Moinho { get; set; }
 
-        public Player(bool ready)
+        public Player(string connectionId, bool ready, bool moinho = false)
         {
+            ConnectionId = connectionId;
             Ready = ready;
+            Moinho = moinho;
             Loaded = false;
             Rematch = false;
         }
     }
 
-    public static string[] GetPlayers(string gameId)
+    public static Guid[] GetPlayers(string gameId)
     {
         return Games[gameId].Players.Select(player => player.Key).ToArray();
     }
@@ -59,27 +66,34 @@ public static class GameService
     {
         Games[gameId].State = Game.GameState.Waiting;
         Games[gameId].Board = null;
-        Games[gameId].Players = new Dictionary<string, Player>();
+        Games[gameId].Players = new Dictionary<Guid, Player>();
     }
 
-    public static (KeyValuePair<string, Color> player1, KeyValuePair<string, Color> player2) StartGame(string gameId, bool moinhoDuplo)
+    public static (KeyValuePair<Guid, Color> player1, KeyValuePair<Guid, Color> player2) StartGame(string gameId, Guid matchId)
     {
         Games[gameId].State = Game.GameState.Playing;
-        var player1 =
-            new KeyValuePair<string, Color>(Games[gameId].Players.ElementAt(0).Key, RandomColor.GetRandomColor());
-        var player2 =
-            new KeyValuePair<string, Color>(Games[gameId].Players.ElementAt(1).Key, RandomColor.GetOppositeColor(player1.Value));
+        Games[gameId].MatchId = matchId;
 
-        var players = new Dictionary<string, Color>
+        var player1 =
+            new KeyValuePair<Guid, Color>(Games[gameId].Players.ElementAt(0).Key, RandomColor.GetRandomColor());
+        var player2 =
+            new KeyValuePair<Guid, Color>(Games[gameId].Players.ElementAt(1).Key, RandomColor.GetOppositeColor(player1.Value));
+
+        var players = new Dictionary<Guid, Color>
         {
             { player1.Key, player1.Value },
             { player2.Key, player2.Value }
         };
 
 
-        Games[gameId].Board = new Board(moinhoDuplo, players);
+        Games[gameId].Board = new Board(Games[gameId].Players.All(x => x.Value.Moinho), players);
 
         return (player1, player2);
+    }
+
+    public static Guid GetMatchId(string gameId)
+    {
+        return Games[gameId].MatchId;
     }
 
     ///// <summary>
@@ -95,9 +109,21 @@ public static class GameService
     //    var players = Games[gameId].Players;
 
     //    if (players.Count != 2 || !players.All(x => x.Value.Rematch)) return null;
-        
+
     //    var moinhoDuplo = Games[gameId].Board!.MoinhoDuplo;
     //    var (player1, player2) = StartGame(gameId, moinhoDuplo);
     //    return (player1, player2);
     //}
+
+    private static Color GetTurnPlayerColor(string gameId)
+    {
+        return Games.TryGetValue(gameId, out var game) ? game.Board?.Turn ?? Color.White : Color.White;
+    }
+
+    private static void OnTurnSkippedEvent(string gameId)
+    {
+        var turnColor = GetTurnPlayerColor(gameId);
+
+        TurnSkippedInGame?.Invoke(null, (gameId, turnColor));
+    }
 }

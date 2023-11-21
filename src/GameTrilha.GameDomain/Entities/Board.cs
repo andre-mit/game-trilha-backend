@@ -1,5 +1,7 @@
 ﻿using GameTrilha.GameDomain.Enums;
 using GameTrilha.GameDomain.Helpers;
+using System.Diagnostics;
+using System.Threading;
 
 namespace GameTrilha.GameDomain.Entities;
 
@@ -29,12 +31,18 @@ public class Board
     public byte WhiteRemaningMoves { get; private set; }
     public byte BlackRemaningMoves { get; private set; }
     public bool ActivateRemaningMoves { get; private set; }
+
     public Color Turn { get; set; } = Color.White;
-    public Dictionary<string, Color> Players { get; init; }
+    public int defaultTurnTimeInSeconds { get; private set; } = 15;
+    private bool _isTurnSkipped;
+    public Timer turnTimer;
+    public event EventHandler TurnSkipped;
+
+    public Dictionary<Guid, Color> Players { get; init; }
 
     public GameStage Stage { get; set; }
 
-    public Board(bool moinhoDuplo, Dictionary<string, Color> players, byte maxDrawMoves = 10)
+    public Board(bool moinhoDuplo, Dictionary<Guid, Color> players, byte maxDrawMoves = 10)
     {
         MoinhoDuplo = moinhoDuplo;
         Stage = GameStage.Place;
@@ -77,7 +85,7 @@ public class Board
     ///    Dictionary with the amount of pieces pending to place for each color
     /// </returns>
     /// <exception cref="InvalidOperationException">Operation is not valid</exception>
-    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId) PlacePiece(string player, byte track, byte line, byte column)
+    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId) PlacePiece(Guid player, byte track, byte line, byte column)
     {
         var color = Players[player];
 
@@ -105,7 +113,7 @@ public class Board
         var opponentColor = color == Color.White ? Color.Black : Color.White;
         var winner = (moinho && PendingPieces[opponentColor] == 0 && ColorPiecesAmount[opponentColor] == 3) || VerifyWinner(color);
         ToggleTurn(moinho);
-        if(PendingPieces.All(x => x.Value ==0))
+        if (PendingPieces.All(x => x.Value == 0))
             Stage = GameStage.Game;
         return (PendingPieces, moinho, winner, piece.Id);
     }
@@ -132,7 +140,7 @@ public class Board
     /// winner: caso o jogador tenha vencido após a movimentação (Pode retornar null caso seja empate)
     /// </returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public (bool moinho, bool? winner) MovePiece(string player, byte originTrack, byte originLine, byte originColumn, byte destinationTrack,
+    public (bool moinho, bool? winner) MovePiece(Guid player, byte originTrack, byte originLine, byte originColumn, byte destinationTrack,
         byte destinationLine, byte destinationColumn)
     {
         var color = Players[player];
@@ -200,7 +208,7 @@ public class Board
     /// <param name="column">Column Allowed values: 0 | 1 | 2</param>
     /// <returns>Winner</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public bool RemovePiece(string player, byte track, byte line, byte column)
+    public bool RemovePiece(Guid player, byte track, byte line, byte column)
     {
         var color = Players.First(x => x.Key != player).Value;
 
@@ -248,7 +256,7 @@ public class Board
     /// All pending pieces to place, if there is a moinho after the placement and if the player has won after the placement
     /// </returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId) PlaceTimeout(string player)
+    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId) PlaceTimeout(Guid player)
     {
         if (Stage != GameStage.Place)
             throw new InvalidOperationException("Não é possível realizar o timeout pois não está na fase de colocação");
@@ -272,7 +280,7 @@ public class Board
     /// <returns></returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     /// <exception cref="InvalidOperationException"></exception>
-    public bool GameTimeout(string player)
+    public bool GameTimeout(Guid player)
     {
         var color = Players[player];
         if (color != Turn)
@@ -443,7 +451,7 @@ public class Board
             _ => false
         };
 
-        if (!winner && PendingPieces[opponentColor] == 0)
+        if (!winner && PendingPieces[opponentColor] == 0 && ColorPiecesAmount[opponentColor] != 3)
             winner = !HaveValidMoves(opponentColor);
 
         return winner;
@@ -468,7 +476,7 @@ public class Board
                     if (Tracks[i].Places[j, k].Piece?.Color != color) continue;
 
                     var availablePlaces = MoveVerification.AllowedPlaces(new MoveVerification.Place(i, j, k));
-                    
+
                     validMove = availablePlaces.Any(x => Tracks[x.Track].PlaceAvailable(x.Line, x.Column));
                 }
             }
@@ -477,5 +485,48 @@ public class Board
         return validMove;
     }
 
-    private void ToggleTurn(bool moinho = false) => Turn = moinho ? Turn : Turn == Color.Black ? Color.White : Color.Black;
+    private void OnTurnTimeout(object state)
+    {
+        _isTurnSkipped = true;
+        TurnTimerReset();
+        ToggleTurn();
+    }
+
+    private void TurnTimerReset()
+    {
+        try
+        {
+            turnTimer?.Dispose();
+        }
+        finally
+        {
+            turnTimer = null;
+        }
+    }
+
+    private void ToggleTurn(bool moinho = false) {
+        if(moinho)
+        {
+            return;
+        }
+
+        switch (Turn) {
+            case Color.White:
+                Turn = Color.Black;
+                break;
+            case Color.Black:
+                Turn = Color.White;
+                break;
+        }
+
+        if (_isTurnSkipped)
+        {
+            _isTurnSkipped = false;
+            TurnSkipped?.Invoke(this, EventArgs.Empty);
+        }
+
+        TimerCallback turnTimerTimeout = new TimerCallback(OnTurnTimeout);
+        turnTimer = new Timer(turnTimerTimeout, null, defaultTurnTimeInSeconds * 1000, Timeout.Infinite);
+
+    }
 }
