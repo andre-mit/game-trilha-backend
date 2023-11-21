@@ -11,4 +11,5 @@ public interface ISkinRepository
     Task<Skin> CreateAsync(Skin skin);
     Task<Skin> UpdateAsync(Skin skin);
     Task DeleteAsync(Guid id);
+    Task BuySkinAsync(Guid skinId, Guid userId);
 }

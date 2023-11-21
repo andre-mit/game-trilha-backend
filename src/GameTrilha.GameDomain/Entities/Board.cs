@@ -443,7 +443,7 @@ public class Board
             _ => false
         };
 
-        if (!winner && PendingPieces[opponentColor] == 0)
+        if (!winner && PendingPieces[opponentColor] == 0 && ColorPiecesAmount[opponentColor] != 3)
             winner = !HaveValidMoves(opponentColor);
 
         return winner;

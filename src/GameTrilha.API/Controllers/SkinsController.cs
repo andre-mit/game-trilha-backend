@@ -113,5 +113,27 @@ namespace GameTrilha.API.Controllers
                 return Problem(ex.Message);
             }
         }
+
+        [HttpPost("buy/{id:guid}")]
+        [Authorize]
+        public async Task<IActionResult> BuySkin(Guid id)
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+                await _skinRepository.BuySkinAsync(id, Guid.Parse(userId));
+                return NoContent();
+            }
+            catch (NullReferenceException ex)
+            {
+                _logger.LogError(ex, "Error on buy skin. Not found skin");
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error on buy skin");
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
