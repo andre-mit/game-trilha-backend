@@ -8,6 +8,8 @@ using GameTrilha.Domain.Entities;
 using GameTrilha.GameDomain.Enums;
 using static GameTrilha.API.Services.GameService;
 using GameTrilha.API.Contexts.Repositories;
+using NuGet.Protocol.Plugins;
+using System.Reflection;
 
 namespace GameTrilha.API.Hubs;
 
@@ -26,6 +28,16 @@ public class GameHub : Hub
         _matchService = matchService;
         _userRepository = userRepository;
         _rankingService = rankingService;
+
+        GameService.BoardCreated += OnBoardCreated;
+    }
+
+    private void AttachTurnSkippedEvent(GameService.Game game)
+    {
+        if (game.Board != null)
+        {
+            game.Board.TurnSkipped += OnTurnSkippedInGame;
+        }
     }
 
     public override async Task OnConnectedAsync()
@@ -315,9 +327,16 @@ public class GameHub : Hub
     }
 
     // Events
-    private async void OnTurnSkippedInGame(object sender, (string gameId, Color turn) boardData)
+    private async void OnTurnSkippedInGame(object sender, (string gameId, Color turn) args)
     {
-        await Clients.Group(boardData.gameId).SendAsync("TurnSkipped", boardData.turn.ToString());
-        //await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
+        if (sender is Board board)
+        {
+            await Clients.Group(args.gameId).SendAsync("TurnSkipped", args.turn.ToString());
+            await Clients.Group(args.gameId).SendAsync("MoveStage", args.turn);
+        }
+    }
+    private void OnBoardCreated(object sender, (string gameId, Game game) args)
+    {
+        AttachTurnSkippedEvent(args.game);
     }
 }
