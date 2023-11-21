@@ -5,19 +5,21 @@ public class ListBoardViewModel
     public Guid Id { get; set; }
     public string Name { get; set; }
     public string? Description { get; set; }
-    public string StrokeColor { get; set; }
+    public string LineColor { get; set; }
     public string BulletColor { get; set; }
-    public string ImageSrc { get; set; }
+    public string BorderLineColor { get; set; }
+    public string BackgroundImageSrc { get; set; }
     public double Price { get; set; }
 
-    public ListBoardViewModel(Guid id, string name, string? description, string strokeColor, string bulletColor, string imageSrc, double price)
+    public ListBoardViewModel(Guid id, string name, string? description, string lineColor, string bulletColor, string borderLineColor, string imageSrc, double price)
     {
         Id = id;
         Name = name;
         Description = description;
-        StrokeColor = strokeColor;
+        LineColor = lineColor;
         BulletColor = bulletColor;
-        ImageSrc = imageSrc;
+        BorderLineColor = borderLineColor;
+        BackgroundImageSrc = imageSrc;
         Price = price;
     }
 }
