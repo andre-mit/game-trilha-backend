@@ -73,4 +73,41 @@ public class SkinRepository : ISkinRepository
         await _context.SaveChangesAsync();
 
     }
+
+    public async Task BuySkinAsync(Guid skinId, Guid userId)
+    {
+        var user = await _context.Users
+            .Include(x => x.Skins)
+            .FirstOrDefaultAsync(x => x.Id == userId) ?? throw new NullReferenceException("User not found");
+
+        var skin = await _context.Skins.FirstOrDefaultAsync(x => x.Id == skinId) ?? throw new NullReferenceException("Skin not found");
+
+        if(user.Skins.Any(x => x.Id == skinId))
+            throw new InvalidOperationException("User already have this skin");
+
+        if(user.Balance < skin.Price)
+            throw new InvalidOperationException("User don't have enough balance");
+
+        user.RemoveBalance((int)skin.Price);
+        user.Skins.Add(skin);
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UseSkinAsync(Guid skinId, Guid userId)
+    {
+        var user = await _context.Users
+            .Include(x => x.Skins)
+            .Include(x => x.Skin)
+            .FirstOrDefaultAsync(x => x.Id == userId) ?? throw new NullReferenceException("User not found");
+
+        if(user.Skins.All(x => x.Id != skinId))
+            throw new InvalidOperationException("User don't have this skin");
+
+        if (user.Skin?.Id == skinId)
+            return;
+
+        user.Skin = user.Skins.First(x=>x.Id == skinId);
+        await _context.SaveChangesAsync();
+    }
 }

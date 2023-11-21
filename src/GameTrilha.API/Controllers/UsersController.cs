@@ -138,13 +138,15 @@ public class UsersController : ControllerBase
             var boards = await _userRepository.ListBoards(userId);
             var skins = await _userRepository.ListSkins(userId);
 
+            var (selectedSkin, selectedBoard) = await _userRepository.GetSelectedSkinAndBoard(userId);
+
             var vmBoards = boards!.Select(b =>
             new ListBoardViewModel(b.Id, b.Name, b.Description, b.LineColor,
-                b.BulletColor, b.BorderLineColor, b.BackgroundImageSrc, b.Price));
+                b.BulletColor, b.BorderLineColor, b.BackgroundImageSrc, b.Price, b.Id == selectedBoard));
 
             var vmSkins = skins!.Select(s =>
             new ListSkinViewModel(s.Id, s.Name, s.Src, s.Description,
-                s.Price));
+                s.Price, s.Id == selectedSkin));
 
             var viewModel = new ListInventoryViewModel(vmBoards.ToList(), vmSkins.ToList());
 

@@ -155,4 +155,14 @@ public class UserRepository : IUserRepository
             .Select(x => new UserSimpleProfile(x.Id, x.Name, x.Avatar, x.Skin.Src, x.Board))
             .ToListAsync();
     }
+
+    public async Task<(Guid selectedSkin, Guid selectedBoard)> GetSelectedSkinAndBoard(Guid userId)
+    {
+        var user = await _context.Users
+            .Include(x => x.Skin)
+            .Include(x => x.Board)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == userId) ?? throw new NullReferenceException();
+        return (user.Skin.Id, user.Board.Id);
+    }
 }
