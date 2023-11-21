@@ -1,9 +1,11 @@
-﻿using GameTrilha.API.Services.Interfaces;
+﻿using GameTrilha.API.Contexts.Repositories;
+using GameTrilha.API.Services.Interfaces;
 using GameTrilha.API.ViewModels.BoardViewModels;
 using GameTrilha.Domain.Entities;
 using GameTrilha.Domain.Entities.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace GameTrilha.API.Controllers;
 
@@ -88,6 +90,55 @@ public class BoardsController : ControllerBase
         {
             _logger.LogError(ex, "Error creating board");
             return BadRequest("Error creating board");
+        }
+    }
+
+    [HttpPost("buy/{id:guid}")]
+    [Authorize]
+    public async Task<ActionResult> BuyBoardSkin(Guid id)
+    {
+        try
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            await _boardRepository.BuyBoardSkinAsync(id, Guid.Parse(userId));
+            return NoContent();
+        }
+        catch (NullReferenceException ex)
+        {
+            _logger.LogError(ex, "Error on buy skin. Not found skin");
+            return NotFound();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error on buy skin");
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPost("use/{id:guid}")]
+    [Authorize]
+    public async Task<ActionResult> UseBoardSkin(Guid id)
+    {
+        try
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            await _boardRepository.UseBoardSkinAsync(id, Guid.Parse(userId));
+            return NoContent();
+        }
+        catch (NullReferenceException ex)
+        {
+            _logger.LogError(ex, "Error on change selected skin. Not found user");
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Error on change selected skin. User not have this skin");
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error on use skin");
+            return BadRequest(ex.Message);
         }
     }
 }

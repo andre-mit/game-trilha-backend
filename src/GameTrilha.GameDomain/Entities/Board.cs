@@ -38,7 +38,7 @@ public class Board
     public Timer turnTimer;
     public event EventHandler TurnSkipped;
 
-    public Dictionary<string, Color> Players { get; init; }
+    public Dictionary<Guid, Color> Players { get; init; }
 
     public GameStage Stage { get; set; }
 
@@ -451,7 +451,7 @@ public class Board
             _ => false
         };
 
-        if (!winner && PendingPieces[opponentColor] == 0)
+        if (!winner && PendingPieces[opponentColor] == 0 && ColorPiecesAmount[opponentColor] != 3)
             winner = !HaveValidMoves(opponentColor);
 
         return winner;

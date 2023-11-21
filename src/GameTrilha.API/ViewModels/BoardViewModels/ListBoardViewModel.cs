@@ -10,8 +10,9 @@ public class ListBoardViewModel
     public string BorderLineColor { get; set; }
     public string BackgroundImageSrc { get; set; }
     public double Price { get; set; }
+    public bool Selected { get; set; }
 
-    public ListBoardViewModel(Guid id, string name, string? description, string lineColor, string bulletColor, string borderLineColor, string imageSrc, double price)
+    public ListBoardViewModel(Guid id, string name, string? description, string lineColor, string bulletColor, string borderLineColor, string imageSrc, double price, bool selected = false)
     {
         Id = id;
         Name = name;
@@ -21,5 +22,6 @@ public class ListBoardViewModel
         BorderLineColor = borderLineColor;
         BackgroundImageSrc = imageSrc;
         Price = price;
+        Selected = selected;
     }
 }
