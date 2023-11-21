@@ -84,8 +84,8 @@ public class User
     {
         if (scorePoints <= 0)
             throw new ArgumentException("Value must be greater than zero", nameof(scorePoints));
-        if (scorePoints > Balance)
-            throw new ArgumentException("Value must be less than balance", nameof(scorePoints));
+        if (scorePoints > Score)
+            throw new ArgumentException("Value must be less than score", nameof(scorePoints));
         Score -= scorePoints;
     }
 
