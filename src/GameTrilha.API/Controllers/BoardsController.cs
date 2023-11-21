@@ -32,7 +32,7 @@ public class BoardsController : ControllerBase
             if (board is not null)
             {
                 _logger.LogInformation("Board found with Id: {Id}", id);
-                var viewModel = new ListBoardViewModel(board.Id, board.Name, board.Description, board.LineColor, board.BulletColor, board.BackgroundImageSrc, board.Price);
+                var viewModel = new ListBoardViewModel(board.Id, board.Name, board.Description, board.LineColor, board.BulletColor, board.BorderLineColor, board.BackgroundImageSrc, board.Price);
                 return Ok(viewModel);
             }
 
@@ -56,7 +56,7 @@ public class BoardsController : ControllerBase
 
             var vmBoards = boards.Select(b =>
                 new ListBoardViewModel(b.Id, b.Name, b.Description, b.LineColor,
-                    b.BulletColor, b.BackgroundImageSrc, b.Price));
+                    b.BulletColor, b.BorderLineColor, b.BackgroundImageSrc, b.Price));
 
             return Ok(vmBoards);
         }
@@ -74,13 +74,13 @@ public class BoardsController : ControllerBase
         try
         {
             _logger.LogInformation("Creating board");
-
-            var url = await _fileStorageService.UploadImageAsync(model.Image, model.ImageFileName);
+            
+            var url = await _fileStorageService.UploadImageAsync(model.Image, model.ImageFileName, "boards");
             var board = await _boardRepository.CreateAsync(new Board(model.Name, model.Description, model.LineColor, model.BulletColor, model.LineColor, url, model.Price));
 
             _logger.LogInformation("Board created with Id: {Id}", board.Id);
 
-            var viewModel = new ListBoardViewModel(board.Id, board.Name, board.Description, board.LineColor, board.BulletColor, board.BackgroundImageSrc, board.Price);
+            var viewModel = new ListBoardViewModel(board.Id, board.Name, board.Description, board.LineColor, board.BulletColor, board.BorderLineColor, board.BackgroundImageSrc, board.Price);
 
             return CreatedAtAction(nameof(GetBoard), new { id = board.Id }, viewModel);
         }

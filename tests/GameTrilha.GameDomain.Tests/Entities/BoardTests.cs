@@ -6,7 +6,9 @@ namespace GameTrilha.GameDomain.Tests.Entities;
 public class BoardTests
 {
     private readonly Board _board;
-    private readonly Dictionary<string, Color> _players;
+    private readonly Dictionary<Guid, Color> _players;
+    private static readonly Guid Player1Id = Guid.NewGuid();
+    private static readonly Guid Player2Id = Guid.NewGuid();
 
     public BoardTests()
     {
@@ -123,10 +125,16 @@ public class BoardTests
             }
         };
 
-        _players = new Dictionary<string, Color> { { "1", Color.White }, { "2", Color.Black } };
-        _board = new Board(false, _players) { Tracks = tracks, Stage = GameStage.Game };
-        _board.PendingPieces[Color.Black] = 0;
-        _board.PendingPieces[Color.White] = 0;
+        _players = new Dictionary<Guid, Color> { { Player1Id, Color.White }, { Player2Id, Color.Black } };
+        _board = new Board(false, _players)
+        {
+            Tracks = tracks, Stage = GameStage.Game,
+            PendingPieces =
+            {
+                [Color.Black] = 0,
+                [Color.White] = 0
+            }
+        };
     }
 
     [Fact]
@@ -138,7 +146,7 @@ public class BoardTests
         board.Stage = GameStage.Game;
 
         // Act
-        var (moinho, winner) = board.MovePiece("1", 1, 0, 2, 1, 0, 1);
+        var (moinho, winner) = board.MovePiece(Player1Id, 1, 0, 2, 1, 0, 1);
 
         // Assert
         Assert.False(winner);
@@ -156,7 +164,7 @@ public class BoardTests
         board.Stage = GameStage.Game;
 
         // Act
-        Action act = () => board.MovePiece("1", 1, 0, 2, 1, 1, 2);
+        Action act = () => board.MovePiece(Player1Id, 1, 0, 2, 1, 1, 2);
 
         // Assert
         Assert.Throws<InvalidOperationException>(act);
@@ -170,7 +178,7 @@ public class BoardTests
         board.Stage = GameStage.Game;
 
         // Act
-        Action act = () => board.MovePiece("1", 1, 0, 2, 1, 0, 2);
+        Action act = () => board.MovePiece(Player1Id, 1, 0, 2, 1, 0, 2);
 
         // Assert
         Assert.Throws<InvalidOperationException>(act);
@@ -184,7 +192,7 @@ public class BoardTests
         board.Stage = GameStage.Game;
 
         // Act
-        var (moinho, winner) = board.MovePiece("1", 0, 0, 2, 1, 2, 2);
+        var (moinho, winner) = board.MovePiece(Player1Id, 0, 0, 2, 1, 2, 2);
 
         // Assert
         Assert.True(moinho);
@@ -199,8 +207,8 @@ public class BoardTests
         board.Stage = GameStage.Game;
 
         // Act
-        var (moinho, winner) = board.MovePiece("1", 0, 0, 2, 1, 2, 2);
-        var result = board.RemovePiece("1", 0, 2, 0);
+        var (moinho, winner) = board.MovePiece(Player1Id, 0, 0, 2, 1, 2, 2);
+        var result = board.RemovePiece(Player1Id, 0, 2, 0);
 
         // Assert
         Assert.True(moinho);
@@ -218,7 +226,7 @@ public class BoardTests
         board.Stage = GameStage.Game;
 
         // Act
-        var (moinho, winner) = board.MovePiece("2", 1, 0, 0, 1, 0, 1);
+        var (moinho, winner) = board.MovePiece(Player2Id, 1, 0, 0, 1, 0, 1);
 
         // Assert
         Assert.True(moinho);
@@ -236,8 +244,8 @@ public class BoardTests
         board.Tracks[0].Places[2, 2].Piece = new Piece(Color.White);
 
         // Act
-        var (moinho, winner) = board.MovePiece("2", 1, 0, 0, 1, 0, 1);
-        Action act = () => board.MovePiece("1", 0, 0, 2, 0, 1, 2);
+        var (moinho, winner) = board.MovePiece(Player2Id, 1, 0, 0, 1, 0, 1);
+        Action act = () => board.MovePiece(Player1Id, 0, 0, 2, 0, 1, 2);
 
         // Assert
         Assert.True(moinho);
@@ -255,9 +263,9 @@ public class BoardTests
         board.Tracks[0].Places[0, 0].Piece = null;
 
         // Act
-        board.MovePiece("1", 0, 0, 2, 1, 2, 2);
-        board.RemovePiece("1", 1, 0, 0);
-        var (moinho, winner) = board.MovePiece("2", 0, 2, 0, 0, 0, 2);
+        board.MovePiece(Player1Id, 0, 0, 2, 1, 2, 2);
+        board.RemovePiece(Player1Id, 1, 0, 0);
+        var (moinho, winner) = board.MovePiece(Player2Id, 0, 2, 0, 0, 0, 2);
 
         // Assert
         Assert.False(moinho);
@@ -278,7 +286,7 @@ public class BoardTests
         board.Tracks[2].Places[0, 1].Piece = null;
 
         // Act
-        var (_, winner) = board.MovePiece("1", 1, 0, 2, 1, 0, 1);
+        var (_, winner) = board.MovePiece(Player1Id, 1, 0, 2, 1, 0, 1);
 
         // Assert
         Assert.True(winner);
@@ -290,14 +298,14 @@ public class BoardTests
         // Arrange
         var board = new Board(false, _players);
 
-        board.PlacePiece("1", 0, 0, 0);
-        board.PlacePiece("2", 0, 2, 0);
-        board.PlacePiece("1", 0, 0, 2);
-        board.PlacePiece("2", 0, 2, 2);
+        board.PlacePiece(Player1Id, 0, 0, 0);
+        board.PlacePiece(Player2Id, 0, 2, 0);
+        board.PlacePiece(Player1Id, 0, 0, 2);
+        board.PlacePiece(Player2Id, 0, 2, 2);
 
         // Act
-        var (_, moinho, _, _) = board.PlacePiece("1", 0, 0, 1);
-        var winner = board.RemovePiece("1", 0, 2, 2);
+        var (_, moinho, _, _) = board.PlacePiece(Player1Id, 0, 0, 1);
+        var winner = board.RemovePiece(Player1Id, 0, 2, 2);
 
         // Assert
         Assert.True(moinho);
@@ -312,14 +320,14 @@ public class BoardTests
 
         board.Turn = Color.White;
 
-        board.PlacePiece("1", 0, 0, 0);
-        board.PlacePiece("2", 0, 2, 0);
-        board.PlacePiece("1", 0, 0, 2);
-        board.PlacePiece("2", 0, 2, 2);
-        board.PlacePiece("1", 1, 0, 1);
-        board.PlacePiece("2", 0, 2, 1);
+        board.PlacePiece(Player1Id, 0, 0, 0);
+        board.PlacePiece(Player2Id, 0, 2, 0);
+        board.PlacePiece(Player1Id, 0, 0, 2);
+        board.PlacePiece(Player2Id, 0, 2, 2);
+        board.PlacePiece(Player1Id, 1, 0, 1);
+        board.PlacePiece(Player2Id, 0, 2, 1);
 
-        board.RemovePiece("2", 1, 0, 1);
+        board.RemovePiece(Player2Id, 1, 0, 1);
 
         bool winner = false;
         int count = 0;
@@ -327,14 +335,14 @@ public class BoardTests
         while (board.PendingPieces[Color.White] != 0)
         {
             count++;
-            board.PlacePiece("1", 0, 0, 1);
-            board.RemovePiece("1", 0, 2, 1);
+            board.PlacePiece(Player1Id, 0, 0, 1);
+            board.RemovePiece(Player1Id, 0, 2, 1);
 
-            var (_, _, w, _) = board.PlacePiece("2", 0, 2, 1);
+            var (_, _, w, _) = board.PlacePiece(Player2Id, 0, 2, 1);
             if (w)
                 winner = w;
             else
-                board.RemovePiece("2", 0, 0, 1);
+                board.RemovePiece(Player2Id, 0, 0, 1);
         }
 
 
@@ -356,10 +364,10 @@ public class BoardTests
         board.Turn = Color.Black;
 
         // Act
-        (var moinhoShouldBeTrue, _) = board.MovePiece("2", 2, 1, 0, 1, 1, 0);
-        board.RemovePiece("2", 0, 2, 2);
-        board.MovePiece("1", 0, 0, 2, 0, 1, 2);
-        (var moinhoShouldBeFalse, _) = board.MovePiece("2", 1, 1, 0, 0, 1, 0);
+        (var moinhoShouldBeTrue, _) = board.MovePiece(Player2Id, 2, 1, 0, 1, 1, 0);
+        board.RemovePiece(Player2Id, 0, 2, 2);
+        board.MovePiece(Player1Id, 0, 0, 2, 0, 1, 2);
+        (var moinhoShouldBeFalse, _) = board.MovePiece(Player2Id, 1, 1, 0, 0, 1, 0);
 
         // Assert
         Assert.True(moinhoShouldBeTrue);
@@ -384,10 +392,10 @@ public class BoardTests
         board.Turn = Color.Black;
 
         // Act
-        (var moinhoShouldBeTrue, _) = board.MovePiece("2", 0, 2, 2, 0, 2, 1);
-        board.RemovePiece("2", 0, 0, 1);
-        board.MovePiece("1", 0, 0, 2, 0, 1, 2);
-        (var moinhoShouldBeFalse, _) = board.MovePiece("2", 0, 2, 1, 0, 2, 0);
+        (var moinhoShouldBeTrue, _) = board.MovePiece(Player2Id, 0, 2, 2, 0, 2, 1);
+        board.RemovePiece(Player2Id, 0, 0, 1);
+        board.MovePiece(Player1Id, 0, 0, 2, 0, 1, 2);
+        (var moinhoShouldBeFalse, _) = board.MovePiece(Player2Id, 0, 2, 1, 0, 2, 0);
 
         // Assert
         Assert.True(moinhoShouldBeTrue);
@@ -413,10 +421,10 @@ public class BoardTests
         board.Tracks[0].Places[2, 2].Piece = new Piece(Color.White);
 
         // Act
-        (var firstMoinho, _) = board.MovePiece("2", 2, 1, 0, 1, 1, 0);
-        board.RemovePiece("2", 0, 2, 2);
-        board.MovePiece("1", 0, 0, 2, 0, 1, 2);
-        (var secondMoinho, _) = board.MovePiece("2", 1, 1, 0, 0, 1, 0);
+        (var firstMoinho, _) = board.MovePiece(Player2Id, 2, 1, 0, 1, 1, 0);
+        board.RemovePiece(Player2Id, 0, 2, 2);
+        board.MovePiece(Player1Id, 0, 0, 2, 0, 1, 2);
+        (var secondMoinho, _) = board.MovePiece(Player2Id, 1, 1, 0, 0, 1, 0);
 
         // Assert
         Assert.True(firstMoinho);
@@ -432,23 +440,23 @@ public class BoardTests
         board.Stage = GameStage.Game;
         board.Tracks[0].Places[0, 1].Piece = null;
 
-        board.MovePiece("1", 0, 0, 2, 1, 2, 2);
-        board.RemovePiece("1", 0, 2, 0);
+        board.MovePiece(Player1Id, 0, 0, 2, 1, 2, 2);
+        board.RemovePiece(Player1Id, 0, 2, 0);
 
-        board.MovePiece("2", 2, 0, 1, 2, 0, 0);
-        board.MovePiece("1", 1, 2, 2, 2, 2, 1);
+        board.MovePiece(Player2Id, 2, 0, 1, 2, 0, 0);
+        board.MovePiece(Player1Id, 1, 2, 2, 2, 2, 1);
 
         // Act
         var draw = false;
         for (int i = 0; i < 5; i++)
         {
-            board.MovePiece("2", 2, 0, 0, 2, 0, 1);
-            var (_, winner) = board.MovePiece("1", 2, 2, 1, 2, 2, 0);
+            board.MovePiece(Player2Id, 2, 0, 0, 2, 0, 1);
+            var (_, winner) = board.MovePiece(Player1Id, 2, 2, 1, 2, 2, 0);
             draw = !winner.HasValue;
             if (draw) continue;
 
-            board.MovePiece("2", 2, 0, 1, 2, 0, 0);
-            board.MovePiece("1", 2, 2, 0, 2, 2, 1);
+            board.MovePiece(Player2Id, 2, 0, 1, 2, 0, 0);
+            board.MovePiece(Player1Id, 2, 2, 0, 2, 2, 1);
         }
 
         // Assert
@@ -469,10 +477,10 @@ public class BoardTests
         board.Turn = Color.Black;
 
         // Act
-        board.MovePiece("2", 2, 1, 0, 1, 1, 0);
-        board.RemovePiece("2", 0, 2, 2);
-        board.MovePiece("1", 0, 0, 2, 2, 2, 2);
-        Action act = () => board.RemovePiece("2", 1, 1, 0);
+        board.MovePiece(Player2Id, 2, 1, 0, 1, 1, 0);
+        board.RemovePiece(Player2Id, 0, 2, 2);
+        board.MovePiece(Player1Id, 0, 0, 2, 2, 2, 2);
+        Action act = () => board.RemovePiece(Player2Id, 1, 1, 0);
 
         // Assert
         Assert.Throws<InvalidOperationException>(act);
@@ -486,9 +494,9 @@ public class BoardTests
         bool? expectedWinner = false;
 
         // Act
-        var draw = board.GameTimeout("1");
-        Action actWhite = () => board.MovePiece("1", 0, 0, 2, 0, 1, 2);
-        var actBlack = (bool moinho, bool? winner) () => board.MovePiece("2", 1, 0, 0, 1, 1, 0);
+        var draw = board.GameTimeout(Player1Id);
+        Action actWhite = () => board.MovePiece(Player1Id, 0, 0, 2, 0, 1, 2);
+        var actBlack = (bool moinho, bool? winner) () => board.MovePiece(Player2Id, 1, 0, 0, 1, 1, 0);
 
         // Assert
         Assert.False(draw);
@@ -505,10 +513,10 @@ public class BoardTests
         board.Tracks[1].Places[1, 0].Piece = new Piece(Color.Black);
 
         // Act
-        (var moinho, _) = board.MovePiece("1", 0, 0, 2, 1, 2, 2);
-        var draw = board.GameTimeout("1");
-        Action actWhite = () => board.RemovePiece("1", 0, 0, 0);
-        var actBlack = (bool moinho, bool? winner) () => board.MovePiece("2", 1, 1, 0, 0, 1, 0);
+        (var moinho, _) = board.MovePiece(Player1Id, 0, 0, 2, 1, 2, 2);
+        var draw = board.GameTimeout(Player1Id);
+        Action actWhite = () => board.RemovePiece(Player1Id, 0, 0, 0);
+        var actBlack = (bool moinho, bool? winner) () => board.MovePiece(Player2Id, 1, 1, 0, 0, 1, 0);
 
         // Assert
         Assert.True(moinho);
@@ -524,10 +532,10 @@ public class BoardTests
         var board = new Board(false, _players);
 
         // Act
-        var (pendingPieces, moinho, winner, _) = board.PlaceTimeout("1");
+        var (pendingPieces, moinho, winner, _) = board.PlaceTimeout(Player1Id);
 
         // Assert
-        Assert.Equal(8, pendingPieces![_players["1"]]);
+        Assert.Equal(8, pendingPieces![_players[Player1Id]]);
         Assert.False(moinho);
         Assert.False(winner);
     }

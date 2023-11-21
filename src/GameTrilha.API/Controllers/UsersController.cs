@@ -1,11 +1,14 @@
 ﻿using System.Security.Claims;
+using GameTrilha.API.Contexts.Repositories;
 using GameTrilha.API.Helpers;
 using GameTrilha.API.Services.Interfaces;
+using GameTrilha.API.ViewModels.BoardViewModels;
+using GameTrilha.API.ViewModels.SkinViewModels;
 using GameTrilha.API.ViewModels.UserViewModels;
-using GameTrilha.Domain.Entities;
 using GameTrilha.Domain.Entities.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace GameTrilha.API.Controllers;
 
@@ -41,7 +44,7 @@ public class UsersController : ControllerBase
 
             _logger.LogInformation("User {userId} getted by token", userId);
 
-            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Roles.Select(x => x.Role.Name).ToList());
+            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Avatar, user.Roles.Select(x => x.Role.Name).ToList());
             return Ok(userModel);
         }
         catch (Exception ex)
@@ -61,7 +64,7 @@ public class UsersController : ControllerBase
 
             user.ThrowIfNull("User not found");
 
-            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Roles.Select(x => x.Role.Name).ToList());
+            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Avatar, user.Roles.Select(x => x.Role.Name).ToList());
             return Ok(userModel);
         }
         catch (NullReferenceException)
@@ -109,11 +112,11 @@ public class UsersController : ControllerBase
             _logger.LogInformation("Creating user {email}", model.Email);
 
             var password = BCrypt.Net.BCrypt.HashPassword(model.Password);
-            var user = await _userRepository.Create(model.Name, model.Email, password);
+            var user = await _userRepository.Create(model.Name, model.Email, password, model.Avatar);
 
             _logger.LogInformation("User {email} created", model.Email);
 
-            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Roles.Select(r => r.Role.Name).ToList());
+            var userModel = new ListUserViewModel(user.Id, user.Name, user.Email, user.Balance, user.Avatar, user.Roles.Select(r => r.Role.Name).ToList());
 
             return CreatedAtAction(nameof(GetUserById), new { id = userModel.Id }, userModel);
         }
@@ -121,6 +124,115 @@ public class UsersController : ControllerBase
         {
             _logger.LogError(ex, "An error occurred while creating the user");
             return Conflict("User already exists");
+        }
+    }
+
+    [Authorize]
+    [HttpGet("inventory")]
+    public async Task<ActionResult<ListInventoryViewModel>> ListInventory()
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            var boards = await _userRepository.ListBoards(userId);
+            var skins = await _userRepository.ListSkins(userId);
+
+            var vmBoards = boards!.Select(b =>
+            new ListBoardViewModel(b.Id, b.Name, b.Description, b.LineColor,
+                b.BulletColor, b.BorderLineColor, b.BackgroundImageSrc, b.Price));
+
+            var vmSkins = skins!.Select(s =>
+            new ListSkinViewModel(s.Id, s.Name, s.Src, s.Description,
+                s.Price));
+
+            var viewModel = new ListInventoryViewModel(vmBoards.ToList(), vmSkins.ToList());
+
+            return Ok(viewModel);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while listing skins");
+            return BadRequest();
+        }
+    }
+
+    [Authorize]
+    [HttpGet("skinRemaining")]
+    public async Task<ActionResult<ListInventoryViewModel>> ListSkinRemaining()
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            var boards = await _userRepository.ListBoardsRemaining(userId);
+            var skins = await _userRepository.ListSkinsRemaining(userId);
+
+            var vmBoards = boards!.Select(b =>
+                new ListBoardViewModel(b.Id, b.Name, b.Description, b.LineColor,
+                    b.BulletColor, b.BorderLineColor, b.BackgroundImageSrc, b.Price));
+
+            var vmSkins = skins!.Select(s =>
+                new ListSkinViewModel(s.Id, s.Name, s.Src, s.Description,
+                 s.Price));
+
+            var viewModel = new ListInventoryViewModel(vmBoards.ToList(), vmSkins.ToList());
+            return Ok(viewModel);
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while listing skins");
+            return BadRequest();
+        }
+
+    }
+
+    [AllowAnonymous]
+    [HttpGet("recover-password/{email}")]
+    public async Task<ActionResult> RequestRecoverPassword(string email)
+    {
+        try
+        {
+            _logger.LogInformation("Requesting recover password for user {email}", email);
+            await _authService.RequestRecoverPasswordAsync(email);
+            return NoContent();
+        }
+        catch (NullReferenceException)
+        {
+            _logger.LogWarning("User not found by email {email}", email);
+            return NotFound("User not found");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while requesting recover password");
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("recover-password")]
+    public async Task<ActionResult> RecoverPassword(RecoverPasswordViewModel model)
+    {
+        try
+        {
+            var success = await _authService.RecoverPasswordAsync(model.Email, model.Code, model.Password);
+
+            if (!success) return Unauthorized("Invalid code");
+
+            _logger.LogInformation("Password recovered for user {email}", model.Email);
+
+            return NoContent();
+        }
+        catch (NullReferenceException)
+        {
+            _logger.LogWarning("User not found by email {email}", model.Email);
+            return NotFound("User not found");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while requesting recover password");
+            return BadRequest(ex.Message);
         }
     }
 }

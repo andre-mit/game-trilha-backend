@@ -3,13 +3,16 @@ using System.Text;
 using Azure.Storage.Blobs;
 using GameTrilha.API.Contexts;
 using GameTrilha.API.Contexts.Repositories;
+using GameTrilha.API.Helpers.JsonConverters;
 using GameTrilha.API.Hubs;
 using GameTrilha.API.Services;
 using GameTrilha.API.Services.Interfaces;
 using GameTrilha.API.SetupConfigurations;
 using GameTrilha.API.SetupConfigurations.Models;
+using GameTrilha.API.ViewModels.GameViewModels;
 using GameTrilha.Domain.Entities.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Resend;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,7 +36,12 @@ builder.Services.AddCors(options =>
 
 #endregion
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new MultidimensionalObjectArrayJsonConverter<PlaceViewModel>());
+    });
+
 builder.Services.AddSignalR();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -48,16 +56,26 @@ builder.Services.AddEntityFrameworkSqlServer()
 
 builder.Services.AddApplicationInsightsTelemetry();
 
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IMatchRepository, MatchRepository>();
-builder.Services.AddScoped<IBoardRepository, BoardRepository>();
+builder.Services.AddRepositories();
 
-builder.Services.AddScoped<IAuthService, AuthService>();
-
-builder.Services.AddScoped<IMatchService, MatchService>();
-builder.Services.AddTransient<IFileStorageService,  FileStorageService>();
+builder.Services.AddServices();
 
 builder.Services.AddTransient(_ => new BlobServiceClient(builder.Configuration.GetConnectionString("AzureBlobStorage")));
+
+#region Email
+
+builder.Services.AddOptions();
+builder.Services.AddHttpClient<ResendClient>();
+var emailOptions = builder.Configuration.GetSection("EmailOptions");
+builder.Services.Configure<EmailClientOptions>(emailOptions);
+builder.Services.Configure<ResendClientOptions>(o =>
+{
+    o.ApiToken = emailOptions.Get<EmailClientOptions>()!.ApiToken;
+});
+builder.Services.AddTransient<IResend, ResendClient>();
+builder.Services.AddTransient<IEmailSenderService, EmailSenderService>();
+
+#endregion
 
 #region JWT
 
@@ -76,7 +94,7 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider
         .GetRequiredService<TrilhaContext>();
 
-// Here is the migration executed
+    // Here is the migration executed
     dbContext.Database.Migrate();
 }
 // Configure the HTTP request pipeline.

@@ -1,4 +1,5 @@
 ﻿using GameTrilha.Domain.Entities;
+using GameTrilha.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 
 namespace GameTrilha.API.Contexts.Seeds;
