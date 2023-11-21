@@ -18,5 +18,5 @@ public interface IUserRepository
     Task<List<Board>?> ListBoards(Guid id);
     Task<List<Skin>?> ListSkinsRemaining(Guid id);
     Task<List<Board>?> ListBoardsRemaining(Guid id);
-    Task<(Guid selectedSkin, Guid selectedBoard)> GetSelectedSkinAndBoard(Guid userId);
+    Task<(Guid? selectedSkin, Guid? selectedBoard)> GetSelectedSkinAndBoard(Guid userId);
 }
