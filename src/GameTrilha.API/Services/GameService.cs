@@ -2,16 +2,16 @@
 using System.Collections.Concurrent;
 using GameTrilha.API.Helpers;
 using GameTrilha.GameDomain.Enums;
+using static GameTrilha.API.Services.GameService;
 
 namespace GameTrilha.API.Services;
 
 // TODO: Refactor to use a database and separate classes to another file
-public static class GameService
+public class GameService
 {
     public static readonly ConcurrentDictionary<string, Game> Games = new(Enumerable.Range(1, 20).ToDictionary(x => x.ToString(), x => new Game()));
-    
-    public static event EventHandler<(string gameId, Color turn)> TurnSkippedInGame;
 
+    public static event EventHandler<(string gameId, Game game)> BoardCreated;
     public class Game
     {
         public Dictionary<Guid, Player> Players { get; set; }
@@ -82,11 +82,12 @@ public static class GameService
         var players = new Dictionary<Guid, Color>
         {
             { player1.Key, player1.Value },
-            { player2.Key, player2.Value }
+            { player2.Key, player2.Value  }
         };
 
 
-        Games[gameId].Board = new Board(Games[gameId].Players.All(x => x.Value.Moinho), players);
+        Games[gameId].Board = new Board(gameId, Games[gameId].Players.All(x => x.Value.Moinho), players);
+        BoardCreated?.Invoke(null, (gameId, Games[gameId]));
 
         return (player1, player2);
     }
@@ -120,10 +121,4 @@ public static class GameService
         return Games.TryGetValue(gameId, out var game) ? game.Board?.Turn ?? Color.White : Color.White;
     }
 
-    private static void OnTurnSkippedEvent(string gameId)
-    {
-        var turnColor = GetTurnPlayerColor(gameId);
-
-        TurnSkippedInGame?.Invoke(null, (gameId, turnColor));
-    }
 }
