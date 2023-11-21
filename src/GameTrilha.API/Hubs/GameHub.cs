@@ -4,9 +4,11 @@ using GameTrilha.API.Services.Interfaces;
 using GameTrilha.Domain.Entities.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using GameTrilha.GameDomain.Entities;
+using GameTrilha.Domain.Entities;
 using GameTrilha.GameDomain.Enums;
 using static GameTrilha.API.Services.GameService;
+using GameTrilha.API.Contexts.Repositories;
+
 
 namespace GameTrilha.API.Hubs;
 
@@ -18,6 +20,7 @@ public class GameHub : Hub
     private Guid UserId => Guid.Parse(Context.UserIdentifier!);
     private readonly IMatchService _matchService;
     private readonly IUserRepository _userRepository;
+    private readonly IRankingService _rankingService;
 
     public GameHub(IMatchService matchService, IUserRepository userRepository)
     {
@@ -118,25 +121,8 @@ public class GameHub : Hub
         var (moinho, winner) = Games[gameId].Board!.MovePiece(UserId, (byte)from[0], (byte)from[1], (byte)from[2], (byte)to[0], (byte)to[1], (byte)to[2]);
         await Clients.Group(gameId).SendAsync("Move", from, to);
         await Task.Delay(1000);
-        if (!winner.HasValue)
-        {
-            await Clients.Group(gameId).SendAsync("Draw");
-            EndMatch(gameId);
-        }
-        else if (winner.Value)
-        {
-            await Clients.Caller.SendAsync("Win");
-            await Clients.OthersInGroup(gameId).SendAsync("Lose");
-            EndMatch(gameId);
-        }
-        else if (moinho)
-        {
-            await Clients.Group(gameId).SendAsync("Moinho", Games[gameId].Board!.Turn);
-        }
-        else
-        {
-            await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
-        }
+
+        VerifyMoveResult(gameId, moinho, winner);
     }
 
 
@@ -242,9 +228,7 @@ public class GameHub : Hub
                 Games[gameId].Players.Remove(UserId);
                 break;
             case Game.GameState.Playing:
-                await Clients.OthersInGroup(gameId).SendAsync("OpponentLeave");
-                await Clients.OthersInGroup(gameId).SendAsync("Win");
-                EndMatch(gameId);
+                HandleRageQuit(gameId);
                 break;
             case Game.GameState.Finished:
                 if (Games[gameId].Players.Count == 1)
@@ -262,5 +246,75 @@ public class GameHub : Hub
         }
 
         Games[gameId].Players.Remove(UserId);
+    }
+    private async void VerifyMoveResult(string gameId, bool moinho, bool? winner)
+    {
+        if (!winner.HasValue)
+        {
+            HandleDraw(gameId);
+            return;
+        }
+
+        if (winner.Value)
+        {
+            HandleWinner(gameId);
+            return;
+        }
+
+        if (moinho)
+        {
+            await Clients.Group(gameId).SendAsync("Moinho", Games[gameId].Board!.Turn);
+            return;
+        }
+
+        await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
+    }
+
+    private async void HandleWinner(string gameId)
+    {
+        List<Guid> playerIdList = Games[gameId].Players.Keys.ToList();
+
+        Guid winnerUserId = UserId;
+        Guid loserUserId = playerIdList.First(playerId => playerId != UserId);
+
+        User? winnerPlayer = await _userRepository.FindById(winnerUserId);
+        User? loserPlayer = await _userRepository.FindById(loserUserId);
+
+        _rankingService.AssignRankingPoints(winnerPlayer, 50, RankingService.Action.Increase);
+        _rankingService.AssignRankingPoints(loserPlayer, 25, RankingService.Action.Decrease);
+
+        await Clients.Caller.SendAsync("Win");
+        await Clients.OthersInGroup(gameId).SendAsync("Lose");
+
+        EndMatch(gameId);
+    }
+
+    private async void HandleDraw(string gameId)
+    {
+        List<Guid> playerIdList = Games[gameId].Players.Keys.ToList();
+
+        foreach (Guid playerId in playerIdList)
+        {
+            User? player = await _userRepository.FindById(playerId);
+            _rankingService.AssignRankingPoints(player, 25, RankingService.Action.Increase);
+        }
+
+        await Clients.Group(gameId).SendAsync("Draw");
+        EndMatch(gameId);
+    }
+
+    private async void HandleRageQuit(string gameId)
+    {
+        List<Guid> playerIdList = Games[gameId].Players.Keys.ToList();
+
+        foreach (Guid playerId in playerIdList)
+        {
+            User? player = await _userRepository.FindById(playerId);
+            _rankingService.AssignRankingPoints(player, 15, RankingService.Action.Increase);
+        }
+
+        await Clients.OthersInGroup(gameId).SendAsync("OpponentLeave");
+        await Clients.OthersInGroup(gameId).SendAsync("Win");
+        EndMatch(gameId);
     }
 }

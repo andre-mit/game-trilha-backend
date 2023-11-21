@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks.Sources;
 using GameTrilha.Domain.ValueObjects;
 
 namespace GameTrilha.Domain.Entities;
@@ -43,7 +44,7 @@ public class User
         
     }
 
-    public User(string name, string email, string password, UserAvatar avatar, int balance = 0)
+    public User(string name, string email, string password, UserAvatar avatar, int balance = 0, int score = 0)
     {
         Id = Guid.NewGuid();
         Name = name;
@@ -51,11 +52,12 @@ public class User
         Password = password;
         Avatar = avatar;
         Balance = balance;
+        Score = score;
     }
 
     public void AddBalance(int value)
     {
-        if(value <= 0)
+        if (value <= 0)
             throw new ArgumentException("Value must be greater than zero", nameof(value));
 
         Balance += value;
@@ -63,11 +65,28 @@ public class User
 
     public void RemoveBalance(int value)
     {
-        if(value <= 0)
+        if (value <= 0)
             throw new ArgumentException("Value must be greater than zero", nameof(value));
-        if(value > Balance)
+        if (value > Balance)
             throw new ArgumentException("Value must be less than balance", nameof(value));
         Balance -= value;
+    }
+
+    public void AddScore(int scorePoints)
+    {
+        if (scorePoints <= 0)
+            throw new ArgumentException("Value must be greater than zero", nameof(scorePoints));
+
+        Score += scorePoints;
+    }
+
+    public void RemoveScore(int scorePoints)
+    {
+        if (scorePoints <= 0)
+            throw new ArgumentException("Value must be greater than zero", nameof(scorePoints));
+        if (scorePoints > Balance)
+            throw new ArgumentException("Value must be less than balance", nameof(scorePoints));
+        Score -= scorePoints;
     }
 
     public void SetPassword(string password)
