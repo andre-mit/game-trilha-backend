@@ -9,7 +9,6 @@ using GameTrilha.GameDomain.Enums;
 using static GameTrilha.API.Services.GameService;
 using GameTrilha.API.Contexts.Repositories;
 
-
 namespace GameTrilha.API.Hubs;
 
 [Authorize]
@@ -313,5 +312,12 @@ public class GameHub : Hub
         await Clients.OthersInGroup(gameId).SendAsync("OpponentLeave");
         await Clients.OthersInGroup(gameId).SendAsync("Win");
         EndMatch(gameId);
+    }
+
+    // Events
+    private async void OnTurnSkippedInGame(object sender, (string gameId, Color turn) boardData)
+    {
+        await Clients.Group(boardData.gameId).SendAsync("TurnSkipped", boardData.turn.ToString());
+        //await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
     }
 }
