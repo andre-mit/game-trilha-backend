@@ -19,6 +19,7 @@ public class LobbyController : ControllerBase
 
     public LobbyController(ILogger<LobbyController> logger, IHubContext<GameHub> gameHubContext, IUserRepository userRepository)
     {
+        _logger = logger;
         _gameHubContext = gameHubContext;
         _userRepository = userRepository;
     }
@@ -42,6 +43,7 @@ public class LobbyController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while getting the lobbies");
             return BadRequest("An error occurred while getting the lobbies");
         }
     }
