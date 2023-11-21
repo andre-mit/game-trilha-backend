@@ -9,6 +9,7 @@ public static class ServicesSetup
     {
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITransactionService, TransactionService>();
+        services.AddScoped<IRankingService, RankingService>();
 
         services.AddScoped<IMatchService, MatchService>();
 

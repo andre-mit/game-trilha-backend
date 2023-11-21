@@ -37,11 +37,16 @@ public class MatchRepository : IMatchRepository
         return match;
     }
 
-    public async Task EndMatch(Guid matchId, Guid winnerId)
+    public async Task EndMatch(Guid matchId, Guid? winnerId = null)
     {
         var match = await _context.Matches.FirstOrDefaultAsync(x => x.Id == matchId) ?? throw new Exception("Match not found");
-        var winner = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == winnerId) ?? throw new Exception("Winner not found");
-        match.Winner = winner;
+
+        if (winnerId is not null)
+        {
+            var winner = await _context.Users.FirstOrDefaultAsync(x => x.Id == winnerId) ?? throw new Exception("Winner not found");
+            match.Winner = winner;
+        }
+
         match.Status = MatchStatus.Finished;
         match.FinishedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
