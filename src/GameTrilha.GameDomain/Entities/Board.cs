@@ -1,5 +1,7 @@
 ﻿using GameTrilha.GameDomain.Enums;
 using GameTrilha.GameDomain.Helpers;
+using System.Diagnostics;
+using System.Threading;
 
 namespace GameTrilha.GameDomain.Entities;
 
@@ -29,7 +31,13 @@ public class Board
     public byte WhiteRemaningMoves { get; private set; }
     public byte BlackRemaningMoves { get; private set; }
     public bool ActivateRemaningMoves { get; private set; }
+
     public Color Turn { get; set; } = Color.White;
+    public int defaultTurnTimeInSeconds { get; private set; } = 15;
+    private bool _isTurnSkipped;
+    public Timer turnTimer;
+    public event EventHandler TurnSkipped;
+
     public Dictionary<Guid, Color> Players { get; init; }
 
     public GameStage Stage { get; set; }
@@ -105,7 +113,7 @@ public class Board
         var opponentColor = color == Color.White ? Color.Black : Color.White;
         var winner = (moinho && PendingPieces[opponentColor] == 0 && ColorPiecesAmount[opponentColor] == 3) || VerifyWinner(color);
         ToggleTurn(moinho);
-        if(PendingPieces.All(x => x.Value ==0))
+        if (PendingPieces.All(x => x.Value == 0))
             Stage = GameStage.Game;
         return (PendingPieces, moinho, winner, piece.Id);
     }
@@ -468,7 +476,7 @@ public class Board
                     if (Tracks[i].Places[j, k].Piece?.Color != color) continue;
 
                     var availablePlaces = MoveVerification.AllowedPlaces(new MoveVerification.Place(i, j, k));
-                    
+
                     validMove = availablePlaces.Any(x => Tracks[x.Track].PlaceAvailable(x.Line, x.Column));
                 }
             }
@@ -477,5 +485,48 @@ public class Board
         return validMove;
     }
 
-    private void ToggleTurn(bool moinho = false) => Turn = moinho ? Turn : Turn == Color.Black ? Color.White : Color.Black;
+    private void OnTurnTimeout(object state)
+    {
+        _isTurnSkipped = true;
+        TurnTimerReset();
+        ToggleTurn();
+    }
+
+    private void TurnTimerReset()
+    {
+        try
+        {
+            turnTimer?.Dispose();
+        }
+        finally
+        {
+            turnTimer = null;
+        }
+    }
+
+    private void ToggleTurn(bool moinho = false) {
+        if(moinho)
+        {
+            return;
+        }
+
+        switch (Turn) {
+            case Color.White:
+                Turn = Color.Black;
+                break;
+            case Color.Black:
+                Turn = Color.White;
+                break;
+        }
+
+        if (_isTurnSkipped)
+        {
+            _isTurnSkipped = false;
+            TurnSkipped?.Invoke(this, EventArgs.Empty);
+        }
+
+        TimerCallback turnTimerTimeout = new TimerCallback(OnTurnTimeout);
+        turnTimer = new Timer(turnTimerTimeout, null, defaultTurnTimeInSeconds * 1000, Timeout.Infinite);
+
+    }
 }
