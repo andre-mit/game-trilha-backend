@@ -200,4 +200,39 @@ public class UserRepository : IUserRepository
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<List<RankingProfile>> GetRankingAsync()
+    {
+        var ranking = await _context.Users
+            .AsNoTracking()
+            .OrderByDescending(x => x.Score)
+            .Where(x => x.Score > 0)
+            .Select(x => new RankingProfile(x.Id, x.Name, x.Avatar, x.Score, 0))
+            .ToListAsync();
+
+        for (var i = 0; i < ranking.Count; i++)
+        {
+            ranking[i].Position = i + 1;
+        }
+
+        return ranking;
+    }
+
+    public async Task<RankingProfile> GetRankingByUserAsync(Guid userId)
+    {
+        var allProfiles = await _context.Users
+            .AsNoTracking()
+            .OrderByDescending(x => x.Score)
+            .Select(x => new RankingProfile(x.Id, x.Name, x.Avatar, x.Score, 0))
+            .ToListAsync();
+
+        for (var i = 0; i < allProfiles.Count; i++)
+        {
+            allProfiles[i].Position = i + 1;
+        }
+
+        var profile = allProfiles.FirstOrDefault(x => x.Id == userId);
+
+        return profile ?? throw new NullReferenceException();
+    }
 }

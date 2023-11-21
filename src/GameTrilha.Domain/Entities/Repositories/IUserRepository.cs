@@ -21,4 +21,6 @@ public interface IUserRepository
     Task<(Guid? selectedSkin, Guid? selectedBoard)> GetSelectedSkinAndBoard(Guid userId);
     Task<bool> IncreaseScoreAsync(Guid id, int score);
     Task<bool> DecreaseScoreAsync(Guid id, int score);
+    Task<List<RankingProfile>> GetRankingAsync();
+    Task<RankingProfile> GetRankingByUserAsync(Guid userId);
 }
