@@ -48,4 +48,22 @@ public class BoardRepository : IBoardRepository
 
         await _context.SaveChangesAsync();
     }
+
+    public async Task UseBoardSkinAsync(Guid boardId, Guid userId)
+    {
+        var user = await _context.Users
+            .Include(x => x.Board)
+            .Include(x => x.Boards)
+            .FirstOrDefaultAsync(x => x.Id == userId) ?? throw new NullReferenceException("User not found");
+
+        if (user.Boards.All(x => x.Id != boardId))
+            throw new InvalidOperationException("User does not have this board");
+
+
+        if (user.Board?.Id == boardId)
+            return;
+
+        user.Board = user.Boards.First(x => x.Id == boardId);
+        await _context.SaveChangesAsync();
+    }
 }

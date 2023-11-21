@@ -114,4 +114,31 @@ public class BoardsController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+    [HttpPost("use/{id:guid}")]
+    [Authorize]
+    public async Task<ActionResult> UseBoardSkin(Guid id)
+    {
+        try
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            await _boardRepository.UseBoardSkinAsync(id, Guid.Parse(userId));
+            return NoContent();
+        }
+        catch (NullReferenceException ex)
+        {
+            _logger.LogError(ex, "Error on change selected skin. Not found user");
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Error on change selected skin. User not have this skin");
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error on use skin");
+            return BadRequest(ex.Message);
+        }
+    }
 }
