@@ -42,14 +42,6 @@ public class GameHub : Hub
         }
     }
 
-    private void AttachTurnSkippedEvent(GameService.Game game)
-    {
-        if (game.Board != null)
-        {
-            game.Board.TurnSkipped += OnTurnSkippedInGame;
-        }
-    }
-
     public override async Task OnConnectedAsync()
     {
         await base.OnConnectedAsync();
