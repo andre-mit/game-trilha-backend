@@ -53,7 +53,6 @@ public class Board
         BlackRemaningMoves = maxDrawMoves;
         Players = players;
 
-        TimerSet();
         TurnSkipped += (sender, args) => { };
     }
 
@@ -262,7 +261,7 @@ public class Board
     /// All pending pieces to place, if there is a moinho after the placement and if the player has won after the placement
     /// </returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId) PlaceTimeout(Guid player)
+    public (Dictionary<Color, byte>? pendingPieces, bool moinho, bool winner, Guid pieceId, int[] place) PlaceTimeout(Guid player)
     {
         if (Stage != GameStage.Place)
             throw new InvalidOperationException("Não é possível realizar o timeout pois não está na fase de colocação");
@@ -273,7 +272,11 @@ public class Board
 
         var availablePlaces = GetAvailablePlaces();
         var (track, line, column) = availablePlaces[new Random().Next(0, availablePlaces.Count)];
-        return PlacePiece(player, track, line, column);
+        var (pendingPieces, moinho, winner, pieceId) = PlacePiece(player, track, line, column);
+
+        int[] place = { track, line, column };
+
+        return (pendingPieces, moinho, winner, pieceId, place);
     }
 
     /// <summary>
@@ -510,13 +513,15 @@ public class Board
         }
     }
 
-    private void ToggleTurn(bool moinho = false) {
+    private void ToggleTurn(bool moinho = false)
+    {
         if (moinho)
         {
             return;
         }
 
-        switch (Turn) {
+        switch (Turn)
+        {
             case Color.White:
                 Turn = Color.Black;
                 break;
@@ -525,10 +530,12 @@ public class Board
                 break;
         }
 
-        TimerSet();
+        if (Stage == GameStage.Game)
+            TimerSet();
     }
-        
-    private void TimerSet() {
+
+    private void TimerSet()
+    {
 
         if (_isTurnSkipped)
         {

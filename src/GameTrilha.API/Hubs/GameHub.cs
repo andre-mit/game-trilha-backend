@@ -10,6 +10,8 @@ using static GameTrilha.API.Services.GameService;
 using GameTrilha.API.Contexts.Repositories;
 using NuGet.Protocol.Plugins;
 using System.Reflection;
+using System.Drawing;
+using Color = GameTrilha.GameDomain.Enums.Color;
 
 namespace GameTrilha.API.Hubs;
 
@@ -328,9 +330,10 @@ public class GameHub : Hub
         EndMatch(gameId);
     }
 
-    private async Task SendMoveStage (string gameId, Color turn)
+    private async Task SendMoveStage(string gameId, Color turn)
     {
-        await _gameHub.Clients.Group(gameId).SendAsync("MoveStage", turn);
+        if (Games[gameId].Board!.Stage == GameStage.Game)
+            await _gameHub.Clients.Group(gameId).SendAsync("MoveStage", turn);
     }
 
     // Events
