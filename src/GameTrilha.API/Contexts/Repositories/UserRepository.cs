@@ -155,14 +155,14 @@ public class UserRepository : IUserRepository
             .ToListAsync();
     }
 
-    public async Task<(Guid selectedSkin, Guid selectedBoard)> GetSelectedSkinAndBoard(Guid userId)
+    public async Task<(Guid? selectedSkin, Guid? selectedBoard)> GetSelectedSkinAndBoard(Guid userId)
     {
         var user = await _context.Users
             .Include(x => x.Skin)
             .Include(x => x.Board)
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == userId) ?? throw new NullReferenceException();
-        return (user.Skin.Id, user.Board.Id);
+        return (user.Skin?.Id, user.Board?.Id);
     }
 
     public async Task<bool> IncreaseScoreAsync(Guid id, int score)
