@@ -8,6 +8,8 @@ public static class ServicesSetup
     public static void AddServices(this IServiceCollection services)
     {
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITransactionService, TransactionService>();
+
         services.AddScoped<IMatchService, MatchService>();
 
         services.AddTransient<IFileStorageService, FileStorageService>();
