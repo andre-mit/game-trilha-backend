@@ -22,10 +22,11 @@ public class GameHub : Hub
     private readonly IUserRepository _userRepository;
     private readonly IRankingService _rankingService;
 
-    public GameHub(IMatchService matchService, IUserRepository userRepository)
+    public GameHub(IMatchService matchService, IUserRepository userRepository, IRankingService rankingService)
     {
         _matchService = matchService;
         _userRepository = userRepository;
+        _rankingService = rankingService;
     }
 
     public override async Task OnConnectedAsync()
@@ -40,7 +41,7 @@ public class GameHub : Hub
 
         if (game.Key == null) return base.OnDisconnectedAsync(exception);
 
-        HandleLeave(game.Key);
+        HandleLeave(game.Key).Wait();
 
         return base.OnDisconnectedAsync(exception);
     }
@@ -74,10 +75,10 @@ public class GameHub : Hub
         await Clients.All.SendAsync("ToggleMoinho", gameId, UserId, moinho);
     }
 
-    public void Leave(string gameId)
+    public async Task Leave(string gameId)
     {
         ThrowIfPlayerIsNotInGame(gameId);
-        HandleLeave(gameId);
+        await HandleLeave(gameId);
     }
 
     public async Task Ready(string gameId)
@@ -92,7 +93,7 @@ public class GameHub : Hub
         {
             await _matchService.StartMatch(gameId, Games[gameId].Players.ElementAt(0).Key,
                 Games[gameId].Players.ElementAt(1).Key);
-            
+
             foreach (var connectionId in players.Select(p => p.Value.ConnectionId))
             {
                 await Clients.Client(connectionId).SendAsync("StartMatch");
@@ -212,11 +213,10 @@ public class GameHub : Hub
 
     private async void EndMatch(string gameId)
     {
-        GameService.EndMatch(gameId);
         await Clients.All.SendAsync("GameFinished", gameId);
     }
 
-    private async void HandleLeave(string gameId)
+    private async Task HandleLeave(string gameId)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameId);
 
@@ -228,7 +228,7 @@ public class GameHub : Hub
                 Games[gameId].Players.Remove(UserId);
                 break;
             case Game.GameState.Playing:
-                HandleRageQuit(gameId);
+                await HandleRageQuit(gameId);
                 break;
             case Game.GameState.Finished:
                 if (Games[gameId].Players.Count == 1)
@@ -247,17 +247,17 @@ public class GameHub : Hub
 
         Games[gameId].Players.Remove(UserId);
     }
-    private async void VerifyMoveResult(string gameId, bool moinho, bool? winner)
+    private async Task VerifyMoveResult(string gameId, bool moinho, bool? winner)
     {
         if (!winner.HasValue)
         {
-            HandleDraw(gameId);
+            await HandleDraw(gameId);
             return;
         }
 
         if (winner.Value)
         {
-            HandleWinner(gameId);
+            await HandleWinner(gameId);
             return;
         }
 
@@ -270,18 +270,16 @@ public class GameHub : Hub
         await Clients.Group(gameId).SendAsync("MoveStage", Games[gameId].Board!.Turn);
     }
 
-    private async void HandleWinner(string gameId)
+    private async Task HandleWinner(string gameId)
     {
-        List<Guid> playerIdList = Games[gameId].Players.Keys.ToList();
+        var playerIdList = Games[gameId].Players.Keys.ToList();
 
-        Guid winnerUserId = UserId;
-        Guid loserUserId = playerIdList.First(playerId => playerId != UserId);
+        var winnerUserId = UserId;
+        var loserUserId = playerIdList.First(playerId => playerId != UserId);
+        await _matchService.EndMatch(gameId, winnerUserId);
 
-        User? winnerPlayer = await _userRepository.FindById(winnerUserId);
-        User? loserPlayer = await _userRepository.FindById(loserUserId);
-
-        _rankingService.AssignRankingPoints(winnerPlayer, 50, RankingService.Action.Increase);
-        _rankingService.AssignRankingPoints(loserPlayer, 25, RankingService.Action.Decrease);
+        await _rankingService.AssignRankingPointsAsync(winnerUserId, 50, RankingService.Action.Increase);
+        await _rankingService.AssignRankingPointsAsync(loserUserId, 25, RankingService.Action.Decrease);
 
         await Clients.Caller.SendAsync("Win");
         await Clients.OthersInGroup(gameId).SendAsync("Lose");
@@ -289,29 +287,28 @@ public class GameHub : Hub
         EndMatch(gameId);
     }
 
-    private async void HandleDraw(string gameId)
+    private async Task HandleDraw(string gameId)
     {
-        List<Guid> playerIdList = Games[gameId].Players.Keys.ToList();
+        var playerIdList = Games[gameId].Players.Keys.ToList();
 
-        foreach (Guid playerId in playerIdList)
+        foreach (var playerId in playerIdList)
         {
-            User? player = await _userRepository.FindById(playerId);
-            _rankingService.AssignRankingPoints(player, 25, RankingService.Action.Increase);
+            await _rankingService.AssignRankingPointsAsync(playerId, 25, RankingService.Action.Increase);
         }
+
+        await _matchService.EndMatch(gameId);
 
         await Clients.Group(gameId).SendAsync("Draw");
         EndMatch(gameId);
     }
 
-    private async void HandleRageQuit(string gameId)
+    private async Task HandleRageQuit(string gameId)
     {
-        List<Guid> playerIdList = Games[gameId].Players.Keys.ToList();
+        var playerWinId = Games[gameId].Players.Keys.First(x => x != UserId);
 
-        foreach (Guid playerId in playerIdList)
-        {
-            User? player = await _userRepository.FindById(playerId);
-            _rankingService.AssignRankingPoints(player, 15, RankingService.Action.Increase);
-        }
+        await _rankingService.AssignRankingPointsAsync(UserId, 25, RankingService.Action.Decrease);
+        await _rankingService.AssignRankingPointsAsync(playerWinId, 25, RankingService.Action.Increase);
+        await _matchService.EndMatch(gameId, playerWinId);
 
         await Clients.OthersInGroup(gameId).SendAsync("OpponentLeave");
         await Clients.OthersInGroup(gameId).SendAsync("Win");

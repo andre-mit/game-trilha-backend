@@ -89,6 +89,11 @@ public static class GameService
         return (player1, player2);
     }
 
+    public static Guid GetMatchId(string gameId)
+    {
+        return Games[gameId].MatchId;
+    }
+
     ///// <summary>
     ///// Set rematch to player
     ///// </summary>

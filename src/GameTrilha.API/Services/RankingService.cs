@@ -9,12 +9,10 @@ namespace GameTrilha.API.Services;
 
 public class RankingService : IRankingService
 {
-    private readonly TrilhaContext _trilhaContext;
     private readonly IUserRepository _userRepository;
 
-    public RankingService(TrilhaContext context, IUserRepository userRepository)
+    public RankingService(IUserRepository userRepository)
     {
-        _trilhaContext = context;
         _userRepository = userRepository;
     }
 
@@ -24,27 +22,15 @@ public class RankingService : IRankingService
         Increase
     }
 
-    public bool AssignRankingPoints(User? userData, int scorePoints, Action action)
+    public async Task<bool> AssignRankingPointsAsync(Guid userId, int scorePoints, Action action)
     {
-        if (userData is null)
+        var success = action switch
         {
-            return false;
-        }
+            Action.Decrease => await _userRepository.DecreaseScoreAsync(userId, scorePoints),
+            Action.Increase => await _userRepository.IncreaseScoreAsync(userId, scorePoints),
+            _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
+        };
 
-        UpdatePlayerRankingPoints(userData, scorePoints, action);
-        SaveUpdate();
-
-        return true;
-    }
-
-    private void UpdatePlayerRankingPoints(User userData, int scorePoints, Action action)
-    {
-        if (action == Action.Increase) { userData.AddScore(scorePoints); }
-        if (action == Action.Decrease) { userData.RemoveScore(scorePoints); }
-    }
-
-        private void SaveUpdate()
-    {
-        _trilhaContext.SaveChanges();
+        return success;
     }
 }

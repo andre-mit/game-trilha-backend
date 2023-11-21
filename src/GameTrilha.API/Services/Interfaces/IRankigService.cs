@@ -4,5 +4,5 @@ namespace GameTrilha.API.Services.Interfaces;
 
 public interface IRankingService
 {
-    bool AssignRankingPoints(User? userData, int scorePoints, RankingService.Action action);
+    Task<bool> AssignRankingPointsAsync(Guid userId, int scorePoints, RankingService.Action action);
 }
