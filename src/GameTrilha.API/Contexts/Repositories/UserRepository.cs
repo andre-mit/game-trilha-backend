@@ -112,7 +112,6 @@ public class UserRepository : IUserRepository
             .ToListAsync();
     }
 
-
     public async Task<RecoveryPasswordCode> CreateRecoveryPasswordAsync(Guid userId, string code, DateTime expiresAt)
     {
         var recoveryRequests = await _context.RecoveryPasswordCodes.Where(r => r.UserId == userId).ToListAsync();
@@ -134,7 +133,7 @@ public class UserRepository : IUserRepository
 
         var recoveryPasswordCode = await _context.RecoveryPasswordCodes.FirstOrDefaultAsync(x => x.UserId == user.Id && x.Code == code);
 
-        if (recoveryPasswordCode == null || recoveryPasswordCode.Locked|| recoveryPasswordCode.ExpiresAt < DateTime.UtcNow) return false;
+        if (recoveryPasswordCode == null || recoveryPasswordCode.Locked || recoveryPasswordCode.ExpiresAt < DateTime.UtcNow) return false;
 
         user.Password = newPassword;
         recoveryPasswordCode.Locked = true;
@@ -149,7 +148,7 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(x => x.Skin)
-            .Include(x=>x.Board)
+            .Include(x => x.Board)
             .AsNoTracking()
             .Where(x => ids.Contains(x.Id))
             .Select(x => new UserSimpleProfile(x.Id, x.Name, x.Avatar, x.Skin.Src, x.Board))
@@ -164,5 +163,41 @@ public class UserRepository : IUserRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == userId) ?? throw new NullReferenceException();
         return (user.Skin?.Id, user.Board?.Id);
+    }
+
+    public async Task<bool> IncreaseScoreAsync(Guid id, int score)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
+        if (user == null) return false;
+
+        try
+        {
+            user.AddScore(score);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DecreaseScoreAsync(Guid id, int score)
+    {
+        var user = await _context.Users.AsTracking().FirstOrDefaultAsync(x => x.Id == id);
+        if (user == null) return false;
+
+        try
+        {
+            user.RemoveScore(score);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+
+        await _context.SaveChangesAsync();
+        return true;
     }
 }

@@ -1,6 +1,5 @@
 ﻿using GameTrilha.API.Services.Interfaces;
 using GameTrilha.Domain.Entities.Repositories;
-using GameTrilha.GameDomain.Enums;
 
 namespace GameTrilha.API.Services;
 
@@ -17,5 +16,12 @@ public class MatchService : IMatchService
     {
         var match = await _matchRepository.Create(user1Id, user2Id);
         GameService.StartGame(gameId, match.Id);
+    }
+
+    public async Task EndMatch(string gameId, Guid? winnerId = null)
+    {
+        var matchId = GameService.GetMatchId(gameId);
+        await _matchRepository.EndMatch(matchId, winnerId);
+        GameService.EndMatch(gameId);
     }
 }

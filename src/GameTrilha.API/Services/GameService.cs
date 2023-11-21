@@ -9,6 +9,8 @@ namespace GameTrilha.API.Services;
 public static class GameService
 {
     public static readonly ConcurrentDictionary<string, Game> Games = new(Enumerable.Range(1, 20).ToDictionary(x => x.ToString(), x => new Game()));
+    
+    public static event EventHandler<(string gameId, Color turn)> TurnSkippedInGame;
 
     public class Game
     {
@@ -89,6 +91,11 @@ public static class GameService
         return (player1, player2);
     }
 
+    public static Guid GetMatchId(string gameId)
+    {
+        return Games[gameId].MatchId;
+    }
+
     ///// <summary>
     ///// Set rematch to player
     ///// </summary>
@@ -107,4 +114,16 @@ public static class GameService
     //    var (player1, player2) = StartGame(gameId, moinhoDuplo);
     //    return (player1, player2);
     //}
+
+    private static Color GetTurnPlayerColor(string gameId)
+    {
+        return Games.TryGetValue(gameId, out var game) ? game.Board?.Turn ?? Color.White : Color.White;
+    }
+
+    private static void OnTurnSkippedEvent(string gameId)
+    {
+        var turnColor = GetTurnPlayerColor(gameId);
+
+        TurnSkippedInGame?.Invoke(null, (gameId, turnColor));
+    }
 }

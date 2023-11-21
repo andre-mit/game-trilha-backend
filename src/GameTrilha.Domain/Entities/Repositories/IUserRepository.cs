@@ -19,4 +19,6 @@ public interface IUserRepository
     Task<List<Skin>?> ListSkinsRemaining(Guid id);
     Task<List<Board>?> ListBoardsRemaining(Guid id);
     Task<(Guid? selectedSkin, Guid? selectedBoard)> GetSelectedSkinAndBoard(Guid userId);
+    Task<bool> IncreaseScoreAsync(Guid id, int score);
+    Task<bool> DecreaseScoreAsync(Guid id, int score);
 }
